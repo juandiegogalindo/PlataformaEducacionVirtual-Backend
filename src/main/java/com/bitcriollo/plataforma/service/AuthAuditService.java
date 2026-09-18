@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Service
 public class AuthAuditService {
 
-    private static final int MAX_INTENTOS_FALLIDOS = 5;
+    private static final int MAX_INTENTOS_FALLIDOS = 3;
     private static final long MINUTOS_BLOQUEO = 15;
 
     private final UsuarioRepository usuarioRepository;

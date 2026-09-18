@@ -1,0 +1,1047 @@
+{
+  "info": {
+    "name": "Plataforma Educacion Virtual",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "refreshToken",
+      "value": ""
+    },
+    {
+      "key": "cursoId",
+      "value": ""
+    },
+    {
+      "key": "examenId",
+      "value": ""
+    },
+    {
+      "key": "tareaId",
+      "value": ""
+    },
+    {
+      "key": "resultadoId",
+      "value": ""
+    },
+    {
+      "key": "usuarioId",
+      "value": ""
+    },
+    {
+      "key": "docenteId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Health",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Registro estudiante",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/registro",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "registro"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Ana\",\n  \"apellido\": \"Perez\",\n  \"correo\": \"ana@test.com\",\n  \"contrasena\": \"clave12345\",\n  \"codigoEstudiantil\": \"E001\",\n  \"tipoDocumento\": \"CEDULA\",\n  \"numeroDocumento\": \"1001\",\n  \"programaAcademico\": \"Ingenieria de Sistemas\",\n  \"semestre\": 3\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.accessToken) {",
+                  "  pm.collectionVariables.set('token', j.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', j.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login administrador",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"admin@test.com\",\n  \"contrasena\": \"clave12345\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.accessToken) {",
+                  "  pm.collectionVariables.set('token', j.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', j.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login docente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"docente@test.com\",\n  \"contrasena\": \"clave12345\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.accessToken) {",
+                  "  pm.collectionVariables.set('token', j.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', j.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login estudiante",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"ana@test.com\",\n  \"contrasena\": \"clave12345\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.accessToken) {",
+                  "  pm.collectionVariables.set('token', j.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', j.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "refresh"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.accessToken) {",
+                  "  pm.collectionVariables.set('token', j.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', j.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Admin",
+      "item": [
+        {
+          "name": "Crear docente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/docentes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "docentes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Carlos\",\n  \"apellido\": \"Gomez\",\n  \"correo\": \"docente@test.com\",\n  \"contrasena\": \"clave12345\",\n  \"codigoDocente\": \"D001\",\n  \"especialidad\": \"Matematicas\",\n  \"tituloProfesional\": \"Licenciado\",\n  \"aniosExperiencia\": 5,\n  \"biografia\": \"Docente de prueba\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) pm.collectionVariables.set('docenteId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear coordinador",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/coordinadores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "coordinadores"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Laura\",\n  \"apellido\": \"Ruiz\",\n  \"correo\": \"coord@test.com\",\n  \"contrasena\": \"clave12345\",\n  \"codigo\": \"C001\",\n  \"facultad\": \"Ingenieria\",\n  \"telefonoOficina\": \"3000000\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Crear administrador",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/administradores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "administradores"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Root\",\n  \"apellido\": \"Admin\",\n  \"correo\": \"admin2@test.com\",\n  \"contrasena\": \"clave12345\",\n  \"codigo\": \"A002\",\n  \"cargo\": \"Administrador\",\n  \"nivelAcceso\": \"ADMIN\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Listar docentes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/docentes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "docentes"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar administradores",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/administradores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "administradores"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar coordinadores",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/coordinadores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "coordinadores"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar estudiantes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/estudiantes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "estudiantes"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Desactivar usuario",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/usuarios/{{usuarioId}}/desactivar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "usuarios",
+                "{{usuarioId}}",
+                "desactivar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Activar usuario",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/usuarios/{{usuarioId}}/activar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "usuarios",
+                "{{usuarioId}}",
+                "activar"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Perfil",
+      "item": [
+        {
+          "name": "Ver perfil",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/perfil",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "perfil"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Actualizar perfil",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/perfil",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "perfil"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Nuevo\",\n  \"telefono\": \"3111111\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Cambiar contrasena",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/perfil/contrasena",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "perfil",
+                "contrasena"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contrasenaActual\": \"clave12345\",\n  \"contrasenaNueva\": \"clave67890\",\n  \"confirmarContrasenaNueva\": \"clave67890\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Cursos",
+      "item": [
+        {
+          "name": "Listar cursos (publico)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cursos"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Ver curso (publico)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/{{cursoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Crear curso (docente)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cursos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Algebra I\",\n  \"descripcion\": \"Curso de prueba\",\n  \"fechaInicio\": \"2026-10-01\",\n  \"fechaFin\": \"2026-12-01\",\n  \"cupoMaximo\": 30\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) pm.collectionVariables.set('cursoId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Actualizar curso",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/{{cursoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Algebra I (editado)\",\n  \"descripcion\": \"Editado\",\n  \"fechaInicio\": \"2026-10-01\",\n  \"fechaFin\": \"2026-12-01\",\n  \"cupoMaximo\": 40\n}"
+            }
+          }
+        },
+        {
+          "name": "Archivar curso",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/{{cursoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Evaluaciones (Fase E)",
+      "item": [
+        {
+          "name": "Listar evaluaciones del curso",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/{{cursoId}}/evaluaciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}",
+                "evaluaciones"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crear examen (docente)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/{{cursoId}}/examenes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}",
+                "examenes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Parcial 1\",\n  \"descripcion\": \"Primer parcial\",\n  \"pesoPorcentual\": 30,\n  \"fechaAplicacion\": \"2026-09-01T08:00:00\",\n  \"tiempoLimite\": 60,\n  \"numeroIntentosPermitidos\": 2,\n  \"aleatorio\": true\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) pm.collectionVariables.set('examenId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ver examen",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/examenes/{{examenId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "examenes",
+                "{{examenId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crear tarea (docente)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/{{cursoId}}/tareas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}",
+                "tareas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Taller 1\",\n  \"descripcion\": \"Primer taller\",\n  \"pesoPorcentual\": 20,\n  \"instrucciones\": \"Resolver los ejercicios 1 a 10\",\n  \"fechaLimite\": \"2026-12-30T23:59:00\",\n  \"permiteEntregaTardia\": true,\n  \"penalizacionTardanzaPorcentaje\": 10\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) pm.collectionVariables.set('tareaId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ver tarea",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tareas/{{tareaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tareas",
+                "{{tareaId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Publicar examen",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/evaluaciones/{{examenId}}/publicar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "evaluaciones",
+                "{{examenId}}",
+                "publicar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Publicar tarea",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/evaluaciones/{{tareaId}}/publicar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "evaluaciones",
+                "{{tareaId}}",
+                "publicar"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Resultados (Fase E)",
+      "item": [
+        {
+          "name": "Registrar intento de examen (estudiante)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/evaluaciones/{{examenId}}/resultados",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "evaluaciones",
+                "{{examenId}}",
+                "resultados"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contenido\": \"Respuestas del examen\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) pm.collectionVariables.set('resultadoId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar entrega de tarea (estudiante)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/evaluaciones/{{tareaId}}/resultados",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "evaluaciones",
+                "{{tareaId}}",
+                "resultados"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contenido\": \"https://drive.google.com/mi-entrega\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) pm.collectionVariables.set('resultadoId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Calificar resultado (docente)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/resultados/{{resultadoId}}/calificar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "resultados",
+                "{{resultadoId}}",
+                "calificar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"calificacion\": 4.5,\n  \"retroalimentacion\": \"Buen trabajo\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Mis calificaciones (estudiante)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/resultados/mis-calificaciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "resultados",
+                "mis-calificaciones"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Calificaciones del curso (docente)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/{{cursoId}}/calificaciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}",
+                "calificaciones"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

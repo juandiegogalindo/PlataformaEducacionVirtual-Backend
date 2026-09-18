@@ -1,5 +1,6 @@
 package com.bitcriollo.plataforma.security;
 
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -8,6 +9,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -39,18 +41,24 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         String token = authHeader.substring(7);
-        String correo = jwtService.extraerCorreo(token);
 
-        if (correo != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = usuarioDetailsService.loadUserByUsername(correo);
+        try {
+            String correo = jwtService.extraerCorreo(token);
 
-            if (jwtService.esTokenValido(token, userDetails) && userDetails.isEnabled()
-                    && userDetails.isAccountNonLocked()) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails,
-                        null, userDetails.getAuthorities());
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+            if (correo != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = usuarioDetailsService.loadUserByUsername(correo);
+
+                if (jwtService.esTokenValido(token, userDetails) && userDetails.isEnabled()
+                        && userDetails.isAccountNonLocked()) {
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities());
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
             }
+        } catch (JwtException | IllegalArgumentException | UsernameNotFoundException e) {
+            // Token malformado, expirado o de un usuario inexistente: la peticion sigue sin autenticar
+            SecurityContextHolder.clearContext();
         }
 
         filterChain.doFilter(request, response);

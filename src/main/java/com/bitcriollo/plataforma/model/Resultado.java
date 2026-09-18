@@ -39,6 +39,9 @@ public class Resultado {
     @Column(columnDefinition = "TEXT")
     private String retroalimentacion;
 
+    @Column(name = "contenido_entrega", columnDefinition = "TEXT")
+    private String contenidoEntrega;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EstadoResultado estado = EstadoResultado.PENDIENTE;
