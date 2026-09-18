@@ -34,11 +34,11 @@ public class AuthService {
     private long refreshExpirationMs;
 
     public AuthService(UsuarioRepository usuarioRepository,
-                        EstudianteRepository estudianteRepository,
-                        RefreshTokenRepository refreshTokenRepository,
-                        PasswordEncoder passwordEncoder,
-                        JwtService jwtService,
-                        AuthAuditService authAuditService) {
+            EstudianteRepository estudianteRepository,
+            RefreshTokenRepository refreshTokenRepository,
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService,
+            AuthAuditService authAuditService) {
         this.usuarioRepository = usuarioRepository;
         this.estudianteRepository = estudianteRepository;
         this.refreshTokenRepository = refreshTokenRepository;
@@ -77,6 +77,11 @@ public class AuthService {
                 && usuario.getBloqueadoHasta().isAfter(LocalDateTime.now())) {
             authAuditService.registrarLogAcceso(usuario, request.getCorreo(), false, ipOrigen);
             throw new IllegalStateException("Cuenta bloqueada temporalmente por intentos fallidos");
+        }
+
+        if (usuario != null && !usuario.isActivo()) {
+            authAuditService.registrarLogAcceso(usuario, request.getCorreo(), false, ipOrigen);
+            throw new IllegalStateException("Esta cuenta ha sido desactivada");
         }
 
         boolean credencialesValidas = usuario != null

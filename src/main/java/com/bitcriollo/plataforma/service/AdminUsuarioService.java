@@ -157,6 +157,8 @@ public class AdminUsuarioService {
                 usuario.getCorreo(),
                 usuario.getClass().getSimpleName(),
                 usuario.isActivo(),
-                usuario.getCreatedAt());
+                usuario.getCreatedAt(),
+                usuario.getTelefono(),
+                usuario.getFotoPerfilUrl());
     }
 }
