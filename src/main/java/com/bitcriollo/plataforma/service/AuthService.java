@@ -121,6 +121,15 @@ public class AuthService {
         return generarRespuestaAuth(usuario);
     }
 
+    @Transactional
+    public void logout(RefreshTokenRequest request) {
+        RefreshToken refreshToken = refreshTokenRepository.findByToken(request.getRefreshToken())
+                .orElseThrow(() -> new IllegalArgumentException("Refresh token invalido"));
+
+        refreshToken.setRevocado(true);
+        refreshTokenRepository.save(refreshToken);
+    }
+
     private AuthResponse generarRespuestaAuth(Usuario usuario) {
         UsuarioDetailsImpl userDetails = new UsuarioDetailsImpl(usuario);
         String accessToken = jwtService.generarToken(userDetails);
