@@ -1,7 +1,9 @@
 package com.bitcriollo.plataforma.service;
 
+import com.bitcriollo.plataforma.dto.CalificarResultadoRequest;
 import com.bitcriollo.plataforma.dto.RegistrarResultadoRequest;
 import com.bitcriollo.plataforma.dto.ResultadoResponse;
+import com.bitcriollo.plataforma.model.Curso;
 import com.bitcriollo.plataforma.model.Estudiante;
 import com.bitcriollo.plataforma.model.Evaluacion;
 import com.bitcriollo.plataforma.model.Examen;
@@ -10,6 +12,7 @@ import com.bitcriollo.plataforma.model.Tarea;
 import com.bitcriollo.plataforma.model.Usuario;
 import com.bitcriollo.plataforma.model.enums.EstadoEvaluacion;
 import com.bitcriollo.plataforma.model.enums.EstadoInscripcion;
+import com.bitcriollo.plataforma.model.enums.EstadoResultado;
 import com.bitcriollo.plataforma.repository.EvaluacionRepository;
 import com.bitcriollo.plataforma.repository.InscripcionRepository;
 import com.bitcriollo.plataforma.repository.ResultadoRepository;
@@ -24,6 +27,9 @@ import java.util.List;
 
 @Service
 public class ResultadoService {
+
+    // Escala de calificacion: de 0.0 a NOTA_MAXIMA
+    private static final double NOTA_MAXIMA = 5.0;
 
     private final ResultadoRepository resultadoRepository;
     private final EvaluacionRepository evaluacionRepository;
@@ -92,6 +98,37 @@ public class ResultadoService {
 
         resultadoRepository.save(resultado);
         return mapearAResponse(resultado);
+    }
+
+    @Transactional
+    public ResultadoResponse calificar(Long resultadoId, CalificarResultadoRequest request, Usuario docente) {
+        Resultado resultado = resultadoRepository.findById(resultadoId)
+                .orElseThrow(() -> new IllegalArgumentException("No existe un resultado con id " + resultadoId));
+        validarDocenteDelCurso(resultado.getEvaluacion().getCurso(), docente);
+
+        if (request.getCalificacion() > NOTA_MAXIMA) {
+            throw new IllegalArgumentException("La calificacion no puede superar " + NOTA_MAXIMA);
+        }
+
+        double nota = request.getCalificacion();
+        Evaluacion evaluacion = (Evaluacion) Hibernate.unproxy(resultado.getEvaluacion());
+        if (evaluacion instanceof Tarea tarea && esEntregaTardia(resultado, tarea)
+                && tarea.getPenalizacionTardanzaPorcentaje() != null) {
+            nota = nota * (1 - tarea.getPenalizacionTardanzaPorcentaje() / 100.0);
+        }
+
+        resultado.setCalificacion(Math.round(nota * 100.0) / 100.0);
+        resultado.setRetroalimentacion(request.getRetroalimentacion());
+        resultado.setEstado(EstadoResultado.CALIFICADO);
+
+        resultadoRepository.save(resultado);
+        return mapearAResponse(resultado);
+    }
+
+    private void validarDocenteDelCurso(Curso curso, Usuario usuario) {
+        if (!curso.getDocente().getId().equals(usuario.getId())) {
+            throw new AccessDeniedException("Solo el docente del curso puede gestionar sus calificaciones");
+        }
     }
 
     private boolean esEntregaTardia(Resultado resultado, Tarea tarea) {
