@@ -12,6 +12,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api")
 public class ResultadoController {
@@ -39,5 +41,12 @@ public class ResultadoController {
             @Valid @RequestBody CalificarResultadoRequest request,
             @AuthenticationPrincipal UsuarioDetailsImpl userDetails) {
         return ResponseEntity.ok(resultadoService.calificar(id, request, userDetails.getUsuario()));
+    }
+
+    @GetMapping("/resultados/mis-calificaciones")
+    @PreAuthorize("hasRole('ESTUDIANTE')")
+    public ResponseEntity<List<ResultadoResponse>> misCalificaciones(
+            @AuthenticationPrincipal UsuarioDetailsImpl userDetails) {
+        return ResponseEntity.ok(resultadoService.misCalificaciones(userDetails.getUsuario()));
     }
 }

@@ -125,6 +125,13 @@ public class ResultadoService {
         return mapearAResponse(resultado);
     }
 
+    @Transactional(readOnly = true)
+    public List<ResultadoResponse> misCalificaciones(Usuario estudiante) {
+        return resultadoRepository.findByEstudianteId(estudiante.getId()).stream()
+                .map(this::mapearAResponse)
+                .toList();
+    }
+
     private void validarDocenteDelCurso(Curso curso, Usuario usuario) {
         if (!curso.getDocente().getId().equals(usuario.getId())) {
             throw new AccessDeniedException("Solo el docente del curso puede gestionar sus calificaciones");
