@@ -16,6 +16,8 @@ import com.bitcriollo.plataforma.repository.UsuarioRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.bitcriollo.plataforma.repository.EstudianteRepository;
+import java.util.List;
 
 @Service
 public class AdminUsuarioService {
@@ -24,17 +26,20 @@ public class AdminUsuarioService {
     private final DocenteRepository docenteRepository;
     private final AdministradorRepository administradorRepository;
     private final CoordinadorAcademicoRepository coordinadorAcademicoRepository;
+    private final EstudianteRepository estudianteRepository;
     private final PasswordEncoder passwordEncoder;
 
     public AdminUsuarioService(UsuarioRepository usuarioRepository,
-                                DocenteRepository docenteRepository,
-                                AdministradorRepository administradorRepository,
-                                CoordinadorAcademicoRepository coordinadorAcademicoRepository,
-                                PasswordEncoder passwordEncoder) {
+            DocenteRepository docenteRepository,
+            AdministradorRepository administradorRepository,
+            CoordinadorAcademicoRepository coordinadorAcademicoRepository,
+            EstudianteRepository estudianteRepository,
+            PasswordEncoder passwordEncoder) {
         this.usuarioRepository = usuarioRepository;
         this.docenteRepository = docenteRepository;
         this.administradorRepository = administradorRepository;
         this.coordinadorAcademicoRepository = coordinadorAcademicoRepository;
+        this.estudianteRepository = estudianteRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -92,6 +97,52 @@ public class AdminUsuarioService {
         return mapearAResponse(coordinador);
     }
 
+    @Transactional(readOnly = true)
+    public List<UsuarioResponse> listarDocentes() {
+        return docenteRepository.findAll().stream()
+                .map(this::mapearAResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<UsuarioResponse> listarAdministradores() {
+        return administradorRepository.findAll().stream()
+                .map(this::mapearAResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<UsuarioResponse> listarCoordinadores() {
+        return coordinadorAcademicoRepository.findAll().stream()
+                .map(this::mapearAResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<UsuarioResponse> listarEstudiantes() {
+        return estudianteRepository.findAll().stream()
+                .map(this::mapearAResponse)
+                .toList();
+    }
+
+    @Transactional
+    public UsuarioResponse desactivarUsuario(Long id) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("No existe un usuario con id " + id));
+        usuario.setActivo(false);
+        usuarioRepository.save(usuario);
+        return mapearAResponse(usuario);
+    }
+
+    @Transactional
+    public UsuarioResponse activarUsuario(Long id) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("No existe un usuario con id " + id));
+        usuario.setActivo(true);
+        usuarioRepository.save(usuario);
+        return mapearAResponse(usuario);
+    }
+
     private void validarCorreoDisponible(String correo) {
         if (usuarioRepository.existsByCorreo(correo)) {
             throw new IllegalArgumentException("Ya existe un usuario registrado con ese correo");
@@ -106,7 +157,6 @@ public class AdminUsuarioService {
                 usuario.getCorreo(),
                 usuario.getClass().getSimpleName(),
                 usuario.isActivo(),
-                usuario.getCreatedAt()
-        );
+                usuario.getCreatedAt());
     }
 }

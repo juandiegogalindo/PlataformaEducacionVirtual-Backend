@@ -9,6 +9,10 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import java.util.List;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -41,5 +45,35 @@ public class AdminController {
     public ResponseEntity<UsuarioResponse> crearCoordinador(@Valid @RequestBody CoordinadorRequest request) {
         UsuarioResponse response = adminUsuarioService.crearCoordinador(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/docentes")
+    public ResponseEntity<List<UsuarioResponse>> listarDocentes() {
+        return ResponseEntity.ok(adminUsuarioService.listarDocentes());
+    }
+
+    @GetMapping("/administradores")
+    public ResponseEntity<List<UsuarioResponse>> listarAdministradores() {
+        return ResponseEntity.ok(adminUsuarioService.listarAdministradores());
+    }
+
+    @GetMapping("/coordinadores")
+    public ResponseEntity<List<UsuarioResponse>> listarCoordinadores() {
+        return ResponseEntity.ok(adminUsuarioService.listarCoordinadores());
+    }
+
+    @GetMapping("/estudiantes")
+    public ResponseEntity<List<UsuarioResponse>> listarEstudiantes() {
+        return ResponseEntity.ok(adminUsuarioService.listarEstudiantes());
+    }
+
+    @PatchMapping("/usuarios/{id}/desactivar")
+    public ResponseEntity<UsuarioResponse> desactivarUsuario(@PathVariable Long id) {
+        return ResponseEntity.ok(adminUsuarioService.desactivarUsuario(id));
+    }
+
+    @PatchMapping("/usuarios/{id}/activar")
+    public ResponseEntity<UsuarioResponse> activarUsuario(@PathVariable Long id) {
+        return ResponseEntity.ok(adminUsuarioService.activarUsuario(id));
     }
 }
