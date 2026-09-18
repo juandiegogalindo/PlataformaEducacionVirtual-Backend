@@ -24,6 +24,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -116,6 +117,22 @@ public class EvaluacionService {
                 .orElseThrow(() -> new IllegalArgumentException("No existe una tarea con id " + id));
         validarAccesoLectura(tarea, usuario);
         return mapearTarea(tarea);
+    }
+
+    @Transactional
+    public EvaluacionResponse publicar(Long id, Usuario docente) {
+        Evaluacion evaluacion = evaluacionRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("No existe una evaluacion con id " + id));
+        validarDocenteDelCurso(evaluacion.getCurso(), docente);
+
+        if (evaluacion.getEstado() != EstadoEvaluacion.BORRADOR) {
+            throw new IllegalStateException("Solo se puede publicar una evaluacion en estado BORRADOR");
+        }
+
+        evaluacion.setEstado(EstadoEvaluacion.PUBLICADA);
+        evaluacion.setFechaPublicacion(LocalDateTime.now());
+        evaluacionRepository.save(evaluacion);
+        return mapearResumen(evaluacion);
     }
 
     private Curso buscarCurso(Long cursoId) {

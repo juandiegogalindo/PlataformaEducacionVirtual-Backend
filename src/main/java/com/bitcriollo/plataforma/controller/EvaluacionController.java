@@ -61,4 +61,11 @@ public class EvaluacionController {
             @AuthenticationPrincipal UsuarioDetailsImpl userDetails) {
         return ResponseEntity.ok(evaluacionService.obtenerTarea(id, userDetails.getUsuario()));
     }
+
+    @PatchMapping("/evaluaciones/{id}/publicar")
+    @PreAuthorize("hasRole('DOCENTE')")
+    public ResponseEntity<EvaluacionResponse> publicarEvaluacion(@PathVariable Long id,
+            @AuthenticationPrincipal UsuarioDetailsImpl userDetails) {
+        return ResponseEntity.ok(evaluacionService.publicar(id, userDetails.getUsuario()));
+    }
 }
