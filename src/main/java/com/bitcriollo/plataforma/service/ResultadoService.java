@@ -13,6 +13,7 @@ import com.bitcriollo.plataforma.model.Usuario;
 import com.bitcriollo.plataforma.model.enums.EstadoEvaluacion;
 import com.bitcriollo.plataforma.model.enums.EstadoInscripcion;
 import com.bitcriollo.plataforma.model.enums.EstadoResultado;
+import com.bitcriollo.plataforma.repository.CursoRepository;
 import com.bitcriollo.plataforma.repository.EvaluacionRepository;
 import com.bitcriollo.plataforma.repository.InscripcionRepository;
 import com.bitcriollo.plataforma.repository.ResultadoRepository;
@@ -34,13 +35,16 @@ public class ResultadoService {
     private final ResultadoRepository resultadoRepository;
     private final EvaluacionRepository evaluacionRepository;
     private final InscripcionRepository inscripcionRepository;
+    private final CursoRepository cursoRepository;
 
     public ResultadoService(ResultadoRepository resultadoRepository,
             EvaluacionRepository evaluacionRepository,
-            InscripcionRepository inscripcionRepository) {
+            InscripcionRepository inscripcionRepository,
+            CursoRepository cursoRepository) {
         this.resultadoRepository = resultadoRepository;
         this.evaluacionRepository = evaluacionRepository;
         this.inscripcionRepository = inscripcionRepository;
+        this.cursoRepository = cursoRepository;
     }
 
     @Transactional
@@ -128,6 +132,17 @@ public class ResultadoService {
     @Transactional(readOnly = true)
     public List<ResultadoResponse> misCalificaciones(Usuario estudiante) {
         return resultadoRepository.findByEstudianteId(estudiante.getId()).stream()
+                .map(this::mapearAResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ResultadoResponse> calificacionesDelCurso(Long cursoId, Usuario docente) {
+        Curso curso = cursoRepository.findById(cursoId)
+                .orElseThrow(() -> new IllegalArgumentException("No existe un curso con id " + cursoId));
+        validarDocenteDelCurso(curso, docente);
+
+        return resultadoRepository.findByEvaluacionCursoId(cursoId).stream()
                 .map(this::mapearAResponse)
                 .toList();
     }

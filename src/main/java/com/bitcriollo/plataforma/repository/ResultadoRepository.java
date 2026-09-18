@@ -11,4 +11,6 @@ public interface ResultadoRepository extends JpaRepository<Resultado, Long> {
     List<Resultado> findByEvaluacionId(Long evaluacionId);
 
     List<Resultado> findByEvaluacionIdAndEstudianteId(Long evaluacionId, Long estudianteId);
+
+    List<Resultado> findByEvaluacionCursoId(Long cursoId);
 }

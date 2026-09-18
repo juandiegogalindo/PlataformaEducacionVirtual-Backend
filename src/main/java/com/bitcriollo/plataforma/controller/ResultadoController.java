@@ -49,4 +49,11 @@ public class ResultadoController {
             @AuthenticationPrincipal UsuarioDetailsImpl userDetails) {
         return ResponseEntity.ok(resultadoService.misCalificaciones(userDetails.getUsuario()));
     }
+
+    @GetMapping("/cursos/{cursoId}/calificaciones")
+    @PreAuthorize("hasRole('DOCENTE')")
+    public ResponseEntity<List<ResultadoResponse>> calificacionesDelCurso(@PathVariable Long cursoId,
+            @AuthenticationPrincipal UsuarioDetailsImpl userDetails) {
+        return ResponseEntity.ok(resultadoService.calificacionesDelCurso(cursoId, userDetails.getUsuario()));
+    }
 }
