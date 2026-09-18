@@ -3,6 +3,8 @@ package com.bitcriollo.plataforma.controller;
 import com.bitcriollo.plataforma.dto.EvaluacionResponse;
 import com.bitcriollo.plataforma.dto.ExamenRequest;
 import com.bitcriollo.plataforma.dto.ExamenResponse;
+import com.bitcriollo.plataforma.dto.TareaRequest;
+import com.bitcriollo.plataforma.dto.TareaResponse;
 import com.bitcriollo.plataforma.security.UsuarioDetailsImpl;
 import com.bitcriollo.plataforma.service.EvaluacionService;
 import jakarta.validation.Valid;
@@ -43,5 +45,20 @@ public class EvaluacionController {
     public ResponseEntity<ExamenResponse> obtenerExamen(@PathVariable Long id,
             @AuthenticationPrincipal UsuarioDetailsImpl userDetails) {
         return ResponseEntity.ok(evaluacionService.obtenerExamen(id, userDetails.getUsuario()));
+    }
+
+    @PostMapping("/cursos/{cursoId}/tareas")
+    @PreAuthorize("hasRole('DOCENTE')")
+    public ResponseEntity<TareaResponse> crearTarea(@PathVariable Long cursoId,
+            @Valid @RequestBody TareaRequest request,
+            @AuthenticationPrincipal UsuarioDetailsImpl userDetails) {
+        TareaResponse response = evaluacionService.crearTarea(cursoId, request, userDetails.getUsuario());
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/tareas/{id}")
+    public ResponseEntity<TareaResponse> obtenerTarea(@PathVariable Long id,
+            @AuthenticationPrincipal UsuarioDetailsImpl userDetails) {
+        return ResponseEntity.ok(evaluacionService.obtenerTarea(id, userDetails.getUsuario()));
     }
 }

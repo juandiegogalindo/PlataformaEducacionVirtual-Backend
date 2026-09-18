@@ -3,11 +3,14 @@ package com.bitcriollo.plataforma.service;
 import com.bitcriollo.plataforma.dto.EvaluacionResponse;
 import com.bitcriollo.plataforma.dto.ExamenRequest;
 import com.bitcriollo.plataforma.dto.ExamenResponse;
+import com.bitcriollo.plataforma.dto.TareaRequest;
+import com.bitcriollo.plataforma.dto.TareaResponse;
 import com.bitcriollo.plataforma.model.CoordinadorAcademico;
 import com.bitcriollo.plataforma.model.Curso;
 import com.bitcriollo.plataforma.model.Estudiante;
 import com.bitcriollo.plataforma.model.Evaluacion;
 import com.bitcriollo.plataforma.model.Examen;
+import com.bitcriollo.plataforma.model.Tarea;
 import com.bitcriollo.plataforma.model.Usuario;
 import com.bitcriollo.plataforma.model.enums.EstadoEvaluacion;
 import com.bitcriollo.plataforma.model.enums.EstadoInscripcion;
@@ -15,6 +18,7 @@ import com.bitcriollo.plataforma.repository.CursoRepository;
 import com.bitcriollo.plataforma.repository.EvaluacionRepository;
 import com.bitcriollo.plataforma.repository.ExamenRepository;
 import com.bitcriollo.plataforma.repository.InscripcionRepository;
+import com.bitcriollo.plataforma.repository.TareaRepository;
 import org.hibernate.Hibernate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -29,15 +33,18 @@ public class EvaluacionService {
 
     private final EvaluacionRepository evaluacionRepository;
     private final ExamenRepository examenRepository;
+    private final TareaRepository tareaRepository;
     private final CursoRepository cursoRepository;
     private final InscripcionRepository inscripcionRepository;
 
     public EvaluacionService(EvaluacionRepository evaluacionRepository,
             ExamenRepository examenRepository,
+            TareaRepository tareaRepository,
             CursoRepository cursoRepository,
             InscripcionRepository inscripcionRepository) {
         this.evaluacionRepository = evaluacionRepository;
         this.examenRepository = examenRepository;
+        this.tareaRepository = tareaRepository;
         this.cursoRepository = cursoRepository;
         this.inscripcionRepository = inscripcionRepository;
     }
@@ -81,6 +88,34 @@ public class EvaluacionService {
                 .orElseThrow(() -> new IllegalArgumentException("No existe un examen con id " + id));
         validarAccesoLectura(examen, usuario);
         return mapearExamen(examen);
+    }
+
+    @Transactional
+    public TareaResponse crearTarea(Long cursoId, TareaRequest request, Usuario docente) {
+        Curso curso = buscarCurso(cursoId);
+        validarDocenteDelCurso(curso, docente);
+        validarPesoDisponible(cursoId, request.getPesoPorcentual());
+
+        Tarea tarea = new Tarea();
+        cargarDatosBase(tarea, curso, request.getTitulo(), request.getDescripcion(), request.getPesoPorcentual());
+        tarea.setInstrucciones(request.getInstrucciones());
+        tarea.setFechaLimite(request.getFechaLimite());
+        tarea.setPermiteEntregaTardia(request.isPermiteEntregaTardia());
+        if (request.isPermiteEntregaTardia()) {
+            Double penalizacion = request.getPenalizacionTardanzaPorcentaje();
+            tarea.setPenalizacionTardanzaPorcentaje(penalizacion != null ? penalizacion : 0.0);
+        }
+
+        tareaRepository.save(tarea);
+        return mapearTarea(tarea);
+    }
+
+    @Transactional(readOnly = true)
+    public TareaResponse obtenerTarea(Long id, Usuario usuario) {
+        Tarea tarea = tareaRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("No existe una tarea con id " + id));
+        validarAccesoLectura(tarea, usuario);
+        return mapearTarea(tarea);
     }
 
     private Curso buscarCurso(Long cursoId) {
@@ -170,5 +205,21 @@ public class EvaluacionService {
                 e.getNumeroIntentosPermitidos(),
                 e.isAleatorio(),
                 e.getCreatedAt());
+    }
+
+    private TareaResponse mapearTarea(Tarea t) {
+        return new TareaResponse(
+                t.getId(),
+                t.getCurso().getId(),
+                t.getTitulo(),
+                t.getDescripcion(),
+                t.getPesoPorcentual(),
+                t.getEstado(),
+                t.getFechaPublicacion(),
+                t.getInstrucciones(),
+                t.getFechaLimite(),
+                t.isPermiteEntregaTardia(),
+                t.getPenalizacionTardanzaPorcentaje(),
+                t.getCreatedAt());
     }
 }
