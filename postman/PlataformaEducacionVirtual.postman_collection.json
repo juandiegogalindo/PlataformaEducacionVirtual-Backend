@@ -49,6 +49,18 @@
     {
       "key": "docenteId",
       "value": ""
+    },
+    {
+      "key": "inscripcionId",
+      "value": ""
+    },
+    {
+      "key": "leccionId",
+      "value": ""
+    },
+    {
+      "key": "recursoId",
+      "value": ""
     }
   ],
   "item": [
@@ -304,6 +316,33 @@
               }
             }
           ]
+        },
+        {
+          "name": "Logout (cerrar sesion)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            }
+          }
         }
       ]
     },
@@ -720,7 +759,364 @@
       ]
     },
     {
-      "name": "5. Evaluaciones (Fase E)",
+      "name": "5. Inscripciones",
+      "item": [
+        {
+          "name": "Inscribirse a un curso (estudiante)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/inscripciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "inscripciones"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cursoId\": \"{{cursoId}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) pm.collectionVariables.set('inscripcionId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mis cursos (estudiante)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/inscripciones/mis-cursos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "inscripciones",
+                "mis-cursos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cancelar inscripcion (estudiante)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/inscripciones/{{inscripcionId}}/cancelar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "inscripciones",
+                "{{inscripcionId}}",
+                "cancelar"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Lecciones",
+      "item": [
+        {
+          "name": "Crear leccion (docente)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/{{cursoId}}/lecciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}",
+                "lecciones"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Introduccion\",\n  \"contenido\": \"Contenido de la leccion\",\n  \"tipoContenido\": \"TEXTO\",\n  \"duracionMinutos\": 30,\n  \"orden\": 1\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) pm.collectionVariables.set('leccionId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar lecciones del curso",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/{{cursoId}}/lecciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}",
+                "lecciones"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Actualizar leccion (docente)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/{{cursoId}}/lecciones/{{leccionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}",
+                "lecciones",
+                "{{leccionId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Introduccion (editada)\",\n  \"contenido\": \"Contenido editado\",\n  \"tipoContenido\": \"VIDEO\",\n  \"duracionMinutos\": 45,\n  \"orden\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Eliminar leccion (docente)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/{{cursoId}}/lecciones/{{leccionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}",
+                "lecciones",
+                "{{leccionId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Recursos bibliograficos",
+      "item": [
+        {
+          "name": "Crear recurso bibliografico (docente)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/{{cursoId}}/recursos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}",
+                "recursos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Algebra Lineal\",\n  \"autor\": \"Gilbert Strang\",\n  \"anioPublicacion\": 2016,\n  \"tipoRecurso\": \"LIBRO\",\n  \"enlace\": \"https://example.com/algebra-lineal\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) pm.collectionVariables.set('recursoId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar recursos del curso",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/{{cursoId}}/recursos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}",
+                "recursos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Actualizar recurso (docente)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/{{cursoId}}/recursos/{{recursoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}",
+                "recursos",
+                "{{recursoId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Algebra Lineal (2a ed.)\",\n  \"autor\": \"Gilbert Strang\",\n  \"anioPublicacion\": 2020,\n  \"tipoRecurso\": \"LIBRO\",\n  \"enlace\": \"https://example.com/algebra-lineal-2\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Eliminar recurso (docente)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/{{cursoId}}/recursos/{{recursoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}",
+                "recursos",
+                "{{recursoId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Progreso",
+      "item": [
+        {
+          "name": "Marcar leccion completada (estudiante)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/{{cursoId}}/lecciones/{{leccionId}}/progreso",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}",
+                "lecciones",
+                "{{leccionId}}",
+                "progreso"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"completado\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Ver progreso del curso (estudiante)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/{{cursoId}}/progreso",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}",
+                "progreso"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Evaluaciones (Fase E)",
       "item": [
         {
           "name": "Listar evaluaciones del curso",
@@ -896,7 +1292,7 @@
       ]
     },
     {
-      "name": "6. Resultados (Fase E)",
+      "name": "10. Resultados (Fase E)",
       "item": [
         {
           "name": "Registrar intento de examen (estudiante)",
