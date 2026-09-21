@@ -5,6 +5,7 @@ import com.bitcriollo.plataforma.dto.CursoResponse;
 import com.bitcriollo.plataforma.model.CoordinadorAcademico;
 import com.bitcriollo.plataforma.model.Curso;
 import com.bitcriollo.plataforma.model.Docente;
+import com.bitcriollo.plataforma.model.Foro;
 import com.bitcriollo.plataforma.model.Usuario;
 import com.bitcriollo.plataforma.model.enums.EstadoCurso;
 import com.bitcriollo.plataforma.repository.CursoRepository;
@@ -12,6 +13,7 @@ import com.bitcriollo.plataforma.repository.DocenteRepository;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.bitcriollo.plataforma.repository.ForoRepository;
 
 import java.util.List;
 
@@ -20,10 +22,13 @@ public class CursoService {
 
     private final CursoRepository cursoRepository;
     private final DocenteRepository docenteRepository;
+    private final ForoRepository foroRepository;
 
-    public CursoService(CursoRepository cursoRepository, DocenteRepository docenteRepository) {
+    public CursoService(CursoRepository cursoRepository, DocenteRepository docenteRepository,
+            ForoRepository foroRepository) {
         this.cursoRepository = cursoRepository;
         this.docenteRepository = docenteRepository;
+        this.foroRepository = foroRepository;
     }
 
     @Transactional
@@ -54,6 +59,10 @@ public class CursoService {
         curso.setImagenPortadaUrl(request.getImagenPortadaUrl());
 
         cursoRepository.save(curso);
+
+        Foro foro = new Foro();
+        foro.setCurso(curso);
+        foroRepository.save(foro);
 
         return mapearAResponse(curso);
     }
@@ -122,7 +131,6 @@ public class CursoService {
                 curso.getFechaFin(),
                 curso.getCupoMaximo(),
                 curso.getImagenPortadaUrl(),
-                curso.getCreatedAt()
-        );
+                curso.getCreatedAt());
     }
 }
