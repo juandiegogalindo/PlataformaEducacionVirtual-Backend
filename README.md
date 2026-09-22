@@ -10,21 +10,21 @@ PostgreSQL 14+ ejecutándose localmente o en contenedor Docker.
 Postman (o Newman para ejecución mediante CLI).
 # Configuración del Entorno de Pruebas
 La aplicación utiliza variables de entorno con valores por defecto orientados al desarrollo local (application.properties):
-# Servidor
+#Servidor
 server.port=8080
 spring.application.name=plataforma-educativa-virtual
 
-# Base de Datos
+#Base de Datos
 spring.datasource.url=${DB_URL:jdbc:postgresql://localhost:5432/plataforma_educativa}
 spring.datasource.username=${DB_USERNAME:postgres}
 spring.datasource.password=${DB_PASSWORD:admin}
 
-# Seguridad & JWT
+#Seguridad & JWT
 app.jwt.secret=${JWT_SECRET:cambia_esta_clave_por_una_generada_de_al_menos_256_bits}
 app.jwt.expiration-ms=86400000        # 24 horas
 app.jwt.refresh-expiration-ms=604800000 # 7 días
 
-# CORS
+#CORS
 app.cors.allowed-origins=${CORS_ALLOWED_ORIGINS:http://localhost:5173}
 
 
