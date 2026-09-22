@@ -40,6 +40,7 @@ public class MensajeForoService {
         if (request.getMensajePadreId() != null) {
             mensajePadre = mensajeRepository.findById(request.getMensajePadreId())
                     .orElseThrow(() -> new IllegalArgumentException("No existe el mensaje al que intentas responder"));
+            // Una respuesta solo puede pertenecer a un mensaje del mismo foro.
             if (!mensajePadre.getForo().getId().equals(foro.getId())) {
                 throw new IllegalArgumentException("Ese mensaje no pertenece al foro de este curso");
             }
@@ -98,6 +99,7 @@ public class MensajeForoService {
     private MensajeForo buscarMensajeDelCursoOLanzar(Curso curso, Long mensajeId) {
         MensajeForo mensaje = mensajeRepository.findById(mensajeId)
                 .orElseThrow(() -> new IllegalArgumentException("No existe un mensaje con id " + mensajeId));
+        // Se valida que el mensaje pertenezca al curso antes de permitir su modificación o eliminación.
         if (!mensaje.getForo().getCurso().getId().equals(curso.getId())) {
             throw new IllegalArgumentException("Ese mensaje no pertenece a este curso");
         }
@@ -115,6 +117,7 @@ public class MensajeForoService {
                     .findByEstudianteIdAndCursoId(solicitante.getId(), curso.getId())
                     .filter(i -> i.getEstado() == EstadoInscripcion.ACTIVA)
                     .isPresent();
+            // Solo los estudiantes con inscripción activa pueden participar en el foro.
             if (inscritoActivo) {
                 return;
             }
@@ -126,6 +129,7 @@ public class MensajeForoService {
     private void validarAutorOModerador(Curso curso, MensajeForo mensaje, Usuario solicitante) {
         boolean esAutor = mensaje.getUsuario().getId().equals(solicitante.getId());
         boolean esDocenteDelCurso = curso.getDocente().getId().equals(solicitante.getId());
+        // Solo el autor o el docente responsable del curso pueden modificar o eliminar el mensaje.
         if (!esAutor && !esDocenteDelCurso) {
             throw new AccessDeniedException("Solo el autor o el docente del curso pueden modificar este mensaje");
         }

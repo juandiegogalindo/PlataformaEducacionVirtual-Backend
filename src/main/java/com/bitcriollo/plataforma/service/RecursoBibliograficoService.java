@@ -89,6 +89,7 @@ public class RecursoBibliograficoService {
     private RecursoBibliografico buscarRecursoDelCursoOLanzar(Long cursoId, Long recursoId) {
         RecursoBibliografico recurso = recursoRepository.findById(recursoId)
                 .orElseThrow(() -> new IllegalArgumentException("No existe un recurso con id " + recursoId));
+        // Se verifica que el recurso pertenezca al curso antes de permitir su modificación o eliminación.
         if (!recurso.getCurso().getId().equals(cursoId)) {
             throw new IllegalArgumentException("Ese recurso no pertenece a este curso");
         }
@@ -97,6 +98,7 @@ public class RecursoBibliograficoService {
 
     private void validarEsDocenteDueno(Curso curso, Usuario solicitante) {
         boolean esDocenteDelCurso = curso.getDocente().getId().equals(solicitante.getId());
+        // Solo el docente asignado al curso puede gestionar sus recursos bibliográficos.
         if (!esDocenteDelCurso) {
             throw new AccessDeniedException("Solo el docente que dicta este curso puede gestionar sus recursos");
         }
@@ -113,6 +115,7 @@ public class RecursoBibliograficoService {
                     .findByEstudianteIdAndCursoId(solicitante.getId(), curso.getId())
                     .filter(i -> i.getEstado() == EstadoInscripcion.ACTIVA)
                     .isPresent();
+            // Solo los estudiantes con inscripción activa pueden consultar los recursos del curso.
             if (inscritoActivo) {
                 return;
             }

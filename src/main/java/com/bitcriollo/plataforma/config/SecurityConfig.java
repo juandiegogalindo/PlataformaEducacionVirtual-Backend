@@ -59,6 +59,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
+
+        // Las solicitudes del frontend se permiten únicamente desde los orígenes configurados.
         config.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
@@ -73,13 +75,16 @@ public class SecurityConfig {
         http
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
+                // La API utiliza JWT, por lo que no mantiene sesiones HTTP en el servidor.
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // Salud y autenticación son públicos para permitir verificar el servicio e iniciar sesión.
                         .requestMatchers("/api/health", "/api/auth/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/cursos", "/api/cursos/*")
                         .permitAll()
                         .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider())
+                // El filtro JWT valida el token antes de que Spring procese la autenticación estándar.
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

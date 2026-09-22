@@ -73,6 +73,7 @@ public class AuthService {
     public AuthResponse login(LoginRequest request, String ipOrigen) {
         Usuario usuario = usuarioRepository.findByCorreo(request.getCorreo()).orElse(null);
 
+        // Se bloquea temporalmente el acceso cuando el usuario supera el límite de intentos fallidos.
         if (usuario != null && usuario.getBloqueadoHasta() != null
                 && usuario.getBloqueadoHasta().isAfter(LocalDateTime.now())) {
             authAuditService.registrarLogAcceso(usuario, request.getCorreo(), false, ipOrigen);
@@ -88,14 +89,14 @@ public class AuthService {
                 && passwordEncoder.matches(request.getContrasena(), usuario.getContrasenaHash());
 
         authAuditService.registrarLogAcceso(usuario, request.getCorreo(), credencialesValidas, ipOrigen);
-
+        // Las credenciales inválidas se registran y aumentan el contador de intentos fallidos. 
         if (!credencialesValidas) {
             if (usuario != null) {
                 authAuditService.registrarIntentoFallido(usuario);
             }
             throw new IllegalArgumentException("Correo o contrasena incorrectos");
         }
-
+        // Un inicio de sesión exitoso restablece el contador y elimina el bloqueo temporal. 
         usuario.setIntentosFallidos(0);
         usuario.setBloqueadoHasta(null);
         usuario.setUltimoAcceso(LocalDateTime.now());
@@ -110,6 +111,7 @@ public class AuthService {
                 .orElseThrow(() -> new IllegalArgumentException("Refresh token invalido"));
 
         if (refreshToken.isRevocado() || refreshToken.getFechaExpiracion().isBefore(LocalDateTime.now())) {
+            // Un refresh token usado, revocado o expirado no puede generar una nueva sesión.
             throw new IllegalStateException("Refresh token expirado o revocado, inicia sesion de nuevo");
         }
 
@@ -118,6 +120,7 @@ public class AuthService {
         refreshToken.setRevocado(true);
         refreshTokenRepository.save(refreshToken);
 
+        // El refresh token se revoca antes de emitir uno nuevo para evitar su reutilización. 
         return generarRespuestaAuth(usuario);
     }
 

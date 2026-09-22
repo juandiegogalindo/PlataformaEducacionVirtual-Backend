@@ -31,6 +31,7 @@ public class InscripcionService {
         Curso curso = cursoRepository.findById(request.getCursoId())
                 .orElseThrow(() -> new IllegalArgumentException("No existe un curso con id " + request.getCursoId()));
 
+        // Solo los cursos activos pueden recibir nuevas inscripciones.
         if (curso.getEstado() != EstadoCurso.ACTIVO) {
             throw new IllegalStateException("Este curso no esta disponible para inscripciones");
         }
@@ -44,6 +45,7 @@ public class InscripcionService {
         }
 
         if (curso.getCupoMaximo() != null) {
+            // Se cuentan únicamente las inscripciones activas para controlar el cupo disponible.
             long inscritosActivos = curso.getInscripciones().stream()
                     .filter(i -> i.getEstado() == EstadoInscripcion.ACTIVA)
                     .count();
@@ -70,6 +72,7 @@ public class InscripcionService {
             throw new AccessDeniedException("No puedes cancelar la inscripcion de otro estudiante");
         }
 
+        // Una inscripción que ya no está activa no puede cancelarse nuevamente.
         if (inscripcion.getEstado() != EstadoInscripcion.ACTIVA) {
             throw new IllegalStateException("Esta inscripcion ya no esta activa");
         }

@@ -40,6 +40,7 @@ public class ProgresoLeccionService {
 
         Leccion leccion = leccionRepository.findById(leccionId)
                 .orElseThrow(() -> new IllegalArgumentException("No existe una leccion con id " + leccionId));
+        // Se verifica que la lección pertenezca al curso antes de registrar su progreso.
         if (!leccion.getCurso().getId().equals(cursoId)) {
             throw new IllegalArgumentException("Esa leccion no pertenece a este curso");
         }
@@ -54,6 +55,7 @@ public class ProgresoLeccionService {
                 });
 
         progreso.setCompletado(request.getCompletado());
+        // La fecha de completado solo se registra cuando la lección queda marcada como completada.
         progreso.setFechaCompletado(request.getCompletado() ? LocalDateTime.now() : null);
 
         progresoRepository.save(progreso);
@@ -95,6 +97,7 @@ public class ProgresoLeccionService {
                 .filter(i -> i.getEstado() == EstadoInscripcion.ACTIVA)
                 .isPresent();
 
+        // Solo los estudiantes con una inscripción activa pueden registrar o consultar su progreso.
         if (!inscritoActivo) {
             throw new AccessDeniedException("No estas inscrito activamente en este curso");
         }

@@ -58,7 +58,7 @@ public class EvaluacionService {
             validarEstudianteInscrito(curso, usuario);
         }
 
-        // Un estudiante solo ve lo que ya fue publicado
+        // Un estudiante solo puede consultar evaluaciones que hayan sido publicadas.
         return evaluacionRepository.findByCursoId(cursoId).stream()
                 .filter(e -> puedeGestionar || e.getEstado() != EstadoEvaluacion.BORRADOR)
                 .map(this::mapearResumen)
@@ -103,6 +103,7 @@ public class EvaluacionService {
         tarea.setFechaLimite(request.getFechaLimite());
         tarea.setPermiteEntregaTardia(request.isPermiteEntregaTardia());
         if (request.isPermiteEntregaTardia()) {
+            // Si se permiten entregas tardías, se establece una penalización de 0% cuando no se especifica.
             Double penalizacion = request.getPenalizacionTardanzaPorcentaje();
             tarea.setPenalizacionTardanzaPorcentaje(penalizacion != null ? penalizacion : 0.0);
         }
@@ -126,6 +127,7 @@ public class EvaluacionService {
         validarDocenteDelCurso(evaluacion.getCurso(), docente);
 
         if (evaluacion.getEstado() != EstadoEvaluacion.BORRADOR) {
+            // Una evaluación solo puede pasar de BORRADOR a PUBLICADA una vez.
             throw new IllegalStateException("Solo se puede publicar una evaluacion en estado BORRADOR");
         }
 
@@ -171,7 +173,7 @@ public class EvaluacionService {
         }
         validarEstudianteInscrito(curso, usuario);
         if (evaluacion.getEstado() == EstadoEvaluacion.BORRADOR) {
-            // No se revela la existencia de evaluaciones sin publicar
+            // No se revela la existencia de evaluaciones sin publicar.
             throw new IllegalArgumentException("No existe una evaluacion con id " + evaluacion.getId());
         }
     }
@@ -181,12 +183,14 @@ public class EvaluacionService {
                 .mapToDouble(Evaluacion::getPesoPorcentual)
                 .sum();
         if (pesoActual + pesoNuevo > PESO_TOTAL_MAXIMO + 1e-9) {
+            // La suma de los pesos de las evaluaciones de un curso no puede superar el 100%.
             throw new IllegalStateException("La suma de los pesos de las evaluaciones del curso no puede superar "
                     + PESO_TOTAL_MAXIMO + "% (actual: " + pesoActual + "%)");
         }
     }
 
     private void cargarDatosBase(Evaluacion evaluacion, Curso curso, String titulo, String descripcion, Double peso) {
+        // Toda evaluación nueva comienza en estado BORRADOR hasta ser publicada.
         evaluacion.setCurso(curso);
         evaluacion.setTitulo(titulo);
         evaluacion.setDescripcion(descripcion);

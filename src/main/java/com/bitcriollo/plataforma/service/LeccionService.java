@@ -88,6 +88,7 @@ public class LeccionService {
     private Leccion buscarLeccionDelCursoOLanzar(Long cursoId, Long leccionId) {
         Leccion leccion = leccionRepository.findById(leccionId)
                 .orElseThrow(() -> new IllegalArgumentException("No existe una leccion con id " + leccionId));
+        // Se verifica que la lección pertenezca al curso solicitado antes de permitir su gestión.
         if (!leccion.getCurso().getId().equals(cursoId)) {
             throw new IllegalArgumentException("Esa leccion no pertenece a este curso");
         }
@@ -96,6 +97,7 @@ public class LeccionService {
 
     private void validarEsDocenteDueno(Curso curso, Usuario solicitante) {
         boolean esDocenteDelCurso = curso.getDocente().getId().equals(solicitante.getId());
+        // Solo el docente asignado al curso puede crear, modificar o eliminar sus lecciones.
         if (!esDocenteDelCurso) {
             throw new AccessDeniedException("Solo el docente que dicta este curso puede gestionar sus lecciones");
         }
@@ -112,6 +114,7 @@ public class LeccionService {
                     .findByEstudianteIdAndCursoId(solicitante.getId(), curso.getId())
                     .filter(i -> i.getEstado() == EstadoInscripcion.ACTIVA)
                     .isPresent();
+            // El contenido del curso solo está disponible para estudiantes con inscripción activa.
             if (inscritoActivo) {
                 return;
             }

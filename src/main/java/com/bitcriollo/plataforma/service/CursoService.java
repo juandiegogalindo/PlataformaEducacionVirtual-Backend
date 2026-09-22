@@ -38,12 +38,14 @@ public class CursoService {
         if (creador instanceof Docente) {
             docente = (Docente) creador;
         } else if (creador instanceof CoordinadorAcademico) {
+            // El coordinador debe indicar explícitamente el docente responsable del curso.
             if (request.getDocenteId() == null) {
                 throw new IllegalArgumentException("Debes indicar el docente que dictara el curso");
             }
             docente = docenteRepository.findById(request.getDocenteId())
                     .orElseThrow(() -> new IllegalArgumentException("No existe un docente con ese id"));
         } else {
+            // Solo docentes y coordinadores tienen permisos para crear cursos. 
             throw new AccessDeniedException("Solo un Docente o Coordinador Academico puede crear cursos");
         }
 
@@ -59,7 +61,8 @@ public class CursoService {
         curso.setImagenPortadaUrl(request.getImagenPortadaUrl());
 
         cursoRepository.save(curso);
-
+        
+        // Cada curso nuevo inicia con un foro asociado. 
         Foro foro = new Foro();
         foro.setCurso(curso);
         foroRepository.save(foro);
@@ -109,6 +112,7 @@ public class CursoService {
     }
 
     private void validarPermisoSobreCurso(Curso curso, Usuario solicitante) {
+        // El docente responsable, el creador o un coordinador pueden modificar el curso. 
         boolean esDocenteDelCurso = curso.getDocente().getId().equals(solicitante.getId());
         boolean esCreador = curso.getCreadoPor().getId().equals(solicitante.getId());
         boolean esCoordinador = solicitante instanceof CoordinadorAcademico;

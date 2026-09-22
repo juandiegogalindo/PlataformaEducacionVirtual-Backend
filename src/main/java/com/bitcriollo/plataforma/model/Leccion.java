@@ -36,6 +36,7 @@ public class Leccion {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo_contenido", nullable = false)
+    // El tipo de contenido define cómo se presenta la lección al estudiante. 
     private TipoContenidoLeccion tipoContenido = TipoContenidoLeccion.TEXTO;
 
     @Column(name = "duracion_minutos")
@@ -49,5 +50,6 @@ public class Leccion {
     private LocalDateTime createdAt;
 
     @OneToMany(mappedBy = "leccion", cascade = CascadeType.ALL, orphanRemoval = true)
+    // Los progresos pertenecen a la lección y se eliminan junto con ella.
     private List<ProgresoLeccion> progresos = new ArrayList<>();
 }

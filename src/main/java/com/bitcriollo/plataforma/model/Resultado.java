@@ -11,6 +11,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
+// Un estudiante no puede registrar el mismo número de intento más de una vez para una evaluación. 
 @Table(name = "resultados", uniqueConstraints = @UniqueConstraint(columnNames = { "evaluacion_id", "estudiante_id",
         "numero_intento" }))
 @Getter
@@ -32,6 +33,7 @@ public class Resultado {
     private Estudiante estudiante;
 
     @Column(name = "numero_intento", nullable = false)
+    // El primer intento se registra con número 1. 
     private Integer numeroIntento = 1;
 
     private Double calificacion;
@@ -44,6 +46,7 @@ public class Resultado {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    // El resultado inicia pendiente hasta que sea calificado. 
     private EstadoResultado estado = EstadoResultado.PENDIENTE;
 
     @CreationTimestamp

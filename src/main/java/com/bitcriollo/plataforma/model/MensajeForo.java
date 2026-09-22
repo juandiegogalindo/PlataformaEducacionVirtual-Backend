@@ -33,15 +33,18 @@ public class MensajeForo {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "mensaje_padre_id")
+    // Un mensaje puede ser una respuesta a otro mensaje del mismo foro.
     private MensajeForo mensajePadre;
 
     @OneToMany(mappedBy = "mensajePadre", cascade = CascadeType.ALL, orphanRemoval = true)
+    // Las respuestas pertenecen al mensaje padre y se eliminan junto con él. 
     private List<MensajeForo> respuestas = new ArrayList<>();
 
     @Column(columnDefinition = "TEXT", nullable = false)
     private String contenido;
 
     @Column(nullable = false)
+    // Indica si el contenido del mensaje fue modificado después de su publicación.
     private boolean editado = false;
 
     @CreationTimestamp

@@ -10,6 +10,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
+// Un estudiante soo puede tener un registro de progreso por cada lección.
 @Table(name = "progreso_lecciones", uniqueConstraints = @UniqueConstraint(columnNames = { "estudiante_id",
         "leccion_id" }))
 @Getter
@@ -31,6 +32,7 @@ public class ProgresoLeccion {
     private Leccion leccion;
 
     @Column(nullable = false)
+    // El progreso inicia como no completado hasta que el estudiante finaliza la lección.
     private boolean completado = false;
 
     @Column(name = "fecha_completado")

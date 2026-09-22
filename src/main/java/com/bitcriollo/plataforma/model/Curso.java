@@ -34,6 +34,7 @@ public class Curso {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    // El estado inicial del curso es ACTIVO al momento de crearlo.
     private EstadoCurso estado = EstadoCurso.ACTIVO;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -65,17 +66,22 @@ public class Curso {
     private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "curso", cascade = CascadeType.ALL, orphanRemoval = true)
+    // Las inscripciones pertenecen al curso y se eliminan cuando el curos deja de existir.
     private List<Inscripcion> inscripciones = new ArrayList<>();
 
     @OneToMany(mappedBy = "curso", cascade = CascadeType.ALL, orphanRemoval = true)
+    // Las lecciones pertenecen al curso y se eliminan cuando el curso deja de existir. 
     private List<Leccion> lecciones = new ArrayList<>();
 
     @OneToMany(mappedBy = "curso", cascade = CascadeType.ALL, orphanRemoval = true)
+    // Los recursos bibliográficos peretenecen al curso y se eliminan junto con él. 
     private List<RecursoBibliografico> recursosBibliograficos = new ArrayList<>();
 
     @OneToOne(mappedBy = "curso", cascade = CascadeType.ALL, orphanRemoval = true)
+    // El foro mantiene una relación uno a uno con el curso y depende de su ciclo de vida.
     private Foro foro;
 
     @OneToMany(mappedBy = "curso", cascade = CascadeType.ALL, orphanRemoval = true)
+    // Las evaluaciones pertenecen al curso y se eliminan junto con él.
     private List<Evaluacion> evaluaciones = new ArrayList<>();
 }

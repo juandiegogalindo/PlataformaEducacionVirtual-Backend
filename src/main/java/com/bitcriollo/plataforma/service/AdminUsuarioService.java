@@ -45,6 +45,7 @@ public class AdminUsuarioService {
 
     @Transactional
     public UsuarioResponse crearDocente(DocenteRequest request) {
+        // Se valida que el correo no este registrado antes de crear el usuario. 
         validarCorreoDisponible(request.getCorreo());
 
         Docente docente = new Docente();
@@ -64,6 +65,7 @@ public class AdminUsuarioService {
 
     @Transactional
     public UsuarioResponse crearAdministrador(AdministradorRequest request) {
+        // Se valida que el correo no esté registrado antes de crear el usuario. 
         validarCorreoDisponible(request.getCorreo());
 
         Administrador administrador = new Administrador();
@@ -82,6 +84,7 @@ public class AdminUsuarioService {
 
     @Transactional
     public UsuarioResponse crearCoordinador(CoordinadorRequest request) {
+        // Se valida que el correo no esté registrado antes de crear el usuario. 
         validarCorreoDisponible(request.getCorreo());
 
         CoordinadorAcademico coordinador = new CoordinadorAcademico();
@@ -129,6 +132,7 @@ public class AdminUsuarioService {
     public UsuarioResponse desactivarUsuario(Long id) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("No existe un usuario con id " + id));
+        // Desactivar el usuario impide su acceso sin eliminar sus datos del sistema. 
         usuario.setActivo(false);
         usuarioRepository.save(usuario);
         return mapearAResponse(usuario);
@@ -138,12 +142,14 @@ public class AdminUsuarioService {
     public UsuarioResponse activarUsuario(Long id) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("No existe un usuario con id " + id));
+        // Activar el usuario permite nuevamente su acceso al sistema.
         usuario.setActivo(true);
         usuarioRepository.save(usuario);
         return mapearAResponse(usuario);
     }
 
     private void validarCorreoDisponible(String correo) {
+        // El correo se utiliza como identificador único de autenticación.
         if (usuarioRepository.existsByCorreo(correo)) {
             throw new IllegalArgumentException("Ya existe un usuario registrado con ese correo");
         }

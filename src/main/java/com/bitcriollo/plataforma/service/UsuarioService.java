@@ -52,14 +52,17 @@ public class UsuarioService {
 
     @Transactional
     public void cambiarContrasena(Usuario usuario, CambiarContrasenaRequest request) {
+        // La contraseña actual debe coincidir antes de permitir el cambio.
         if (!passwordEncoder.matches(request.getContrasenaActual(), usuario.getContrasenaHash())) {
             throw new IllegalArgumentException("La contrasena actual no es correcta");
         }
 
+        // Se requiere confirmar la nueva contraseña para evitar errores de ingreso.
         if (!request.getContrasenaNueva().equals(request.getConfirmarContrasenaNueva())) {
             throw new IllegalArgumentException("Las contrasenas nuevas no coinciden");
         }
 
+        // La nueva contraseña no puede ser igual a la contraseña actual.
         if (passwordEncoder.matches(request.getContrasenaNueva(), usuario.getContrasenaHash())) {
             throw new IllegalArgumentException("La contrasena nueva debe ser diferente a la actual");
         }
@@ -67,6 +70,7 @@ public class UsuarioService {
         usuario.setContrasenaHash(passwordEncoder.encode(request.getContrasenaNueva()));
         usuarioRepository.save(usuario);
 
+        // Los refresh tokens activos se revocan para obligar a iniciar una nueva sesión con la contraseña actualizada.
         refreshTokenRepository.findAll().stream()
                 .filter(rt -> rt.getUsuario().getId().equals(usuario.getId()) && !rt.isRevocado())
                 .forEach(rt -> {
