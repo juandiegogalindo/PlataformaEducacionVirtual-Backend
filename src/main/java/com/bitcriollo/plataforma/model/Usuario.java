@@ -42,7 +42,7 @@ public abstract class Usuario {
     private String fotoPerfilUrl;
 
     @Column(nullable = false)
-    // El estado activo permite habilitar o deshabilitar el acceso del usuario. 
+    // El estado activo permite habilitar o deshabilitar el acceso del usuario.
     private boolean activo = true;
 
     @Column(name = "email_verificado", nullable = false)
@@ -52,11 +52,11 @@ public abstract class Usuario {
     private LocalDateTime ultimoAcceso;
 
     @Column(name = "intentos_fallidos", nullable = false)
-    // Los intentos fallidos se utilizan para controlar posibles bloqueos de acceso. 
+    // Los intentos fallidos se utilizan para controlar posibles bloqueos de acceso.
     private int intentosFallidos = 0;
 
     @Column(name = "bloqueado_hasta")
-    // La fecha indica hasta cuándo pertenece bloqueado el usuario, cuando aplica. 
+    // La fecha indica hasta cuándo permanece bloqueado el usuario, cuando aplica.
     private LocalDateTime bloqueadoHasta;
 
     @CreationTimestamp

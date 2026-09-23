@@ -4,7 +4,6 @@ import com.bitcriollo.plataforma.dto.CursoProgresoResponse;
 import com.bitcriollo.plataforma.dto.ProgresoLeccionRequest;
 import com.bitcriollo.plataforma.dto.ProgresoLeccionResponse;
 import com.bitcriollo.plataforma.model.*;
-import com.bitcriollo.plataforma.model.enums.EstadoInscripcion;
 import com.bitcriollo.plataforma.repository.*;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -21,16 +20,16 @@ public class ProgresoLeccionService {
     private final ProgresoLeccionRepository progresoRepository;
     private final LeccionRepository leccionRepository;
     private final CursoRepository cursoRepository;
-    private final InscripcionRepository inscripcionRepository;
+    private final CursoAccesoService cursoAccesoService;
 
     public ProgresoLeccionService(ProgresoLeccionRepository progresoRepository,
             LeccionRepository leccionRepository,
             CursoRepository cursoRepository,
-            InscripcionRepository inscripcionRepository) {
+            CursoAccesoService cursoAccesoService) {
         this.progresoRepository = progresoRepository;
         this.leccionRepository = leccionRepository;
         this.cursoRepository = cursoRepository;
-        this.inscripcionRepository = inscripcionRepository;
+        this.cursoAccesoService = cursoAccesoService;
     }
 
     @Transactional
@@ -89,16 +88,11 @@ public class ProgresoLeccionService {
     }
 
     private void validarInscritoActivo(Long cursoId, Estudiante estudiante) {
-        cursoRepository.findById(cursoId)
+        Curso curso = cursoRepository.findById(cursoId)
                 .orElseThrow(() -> new IllegalArgumentException("No existe un curso con id " + cursoId));
 
-        boolean inscritoActivo = inscripcionRepository
-                .findByEstudianteIdAndCursoId(estudiante.getId(), cursoId)
-                .filter(i -> i.getEstado() == EstadoInscripcion.ACTIVA)
-                .isPresent();
-
         // Solo los estudiantes con una inscripción activa pueden registrar o consultar su progreso.
-        if (!inscritoActivo) {
+        if (!cursoAccesoService.estaInscritoActivo(curso, estudiante)) {
             throw new AccessDeniedException("No estas inscrito activamente en este curso");
         }
     }

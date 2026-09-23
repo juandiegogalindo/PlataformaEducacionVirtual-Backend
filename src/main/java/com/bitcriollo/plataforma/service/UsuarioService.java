@@ -71,8 +71,7 @@ public class UsuarioService {
         usuarioRepository.save(usuario);
 
         // Los refresh tokens activos se revocan para obligar a iniciar una nueva sesión con la contraseña actualizada.
-        refreshTokenRepository.findAll().stream()
-                .filter(rt -> rt.getUsuario().getId().equals(usuario.getId()) && !rt.isRevocado())
+        refreshTokenRepository.findByUsuarioIdAndRevocadoFalse(usuario.getId())
                 .forEach(rt -> {
                     rt.setRevocado(true);
                     refreshTokenRepository.save(rt);

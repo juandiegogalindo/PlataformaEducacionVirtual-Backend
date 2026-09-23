@@ -25,7 +25,7 @@ public class Foro {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "curso_id", nullable = false, unique = true)
-    // Cada foro pertenece a un único curso. 
+    // Cada foro pertenece a un único curso.
     private Curso curso;
 
     private String titulo;
@@ -38,6 +38,6 @@ public class Foro {
     private LocalDateTime createdAt;
 
     @OneToMany(mappedBy = "foro", cascade = CascadeType.ALL, orphanRemoval = true)
-    // Los mensajes pertenecen al foro y se eliminan junto con él. 
+    // Los mensajes pertenecen al foro y se eliminan junto con él.
     private List<MensajeForo> mensajes = new ArrayList<>();
 }

@@ -37,7 +37,7 @@ public class MensajeForo {
     private MensajeForo mensajePadre;
 
     @OneToMany(mappedBy = "mensajePadre", cascade = CascadeType.ALL, orphanRemoval = true)
-    // Las respuestas pertenecen al mensaje padre y se eliminan junto con él. 
+    // Las respuestas pertenecen al mensaje padre y se eliminan junto con él.
     private List<MensajeForo> respuestas = new ArrayList<>();
 
     @Column(columnDefinition = "TEXT", nullable = false)

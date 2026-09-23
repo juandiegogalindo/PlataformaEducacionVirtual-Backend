@@ -66,15 +66,15 @@ public class Curso {
     private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "curso", cascade = CascadeType.ALL, orphanRemoval = true)
-    // Las inscripciones pertenecen al curso y se eliminan cuando el curos deja de existir.
+    // Las inscripciones pertenecen al curso y se eliminan cuando el curso deja de existir.
     private List<Inscripcion> inscripciones = new ArrayList<>();
 
     @OneToMany(mappedBy = "curso", cascade = CascadeType.ALL, orphanRemoval = true)
-    // Las lecciones pertenecen al curso y se eliminan cuando el curso deja de existir. 
+    // Las lecciones pertenecen al curso y se eliminan cuando el curso deja de existir.
     private List<Leccion> lecciones = new ArrayList<>();
 
     @OneToMany(mappedBy = "curso", cascade = CascadeType.ALL, orphanRemoval = true)
-    // Los recursos bibliográficos peretenecen al curso y se eliminan junto con él. 
+    // Los recursos bibliográficos pertenecen al curso y se eliminan junto con él.
     private List<RecursoBibliografico> recursosBibliograficos = new ArrayList<>();
 
     @OneToOne(mappedBy = "curso", cascade = CascadeType.ALL, orphanRemoval = true)

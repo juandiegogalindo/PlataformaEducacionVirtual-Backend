@@ -23,12 +23,14 @@ public class CursoService {
     private final CursoRepository cursoRepository;
     private final DocenteRepository docenteRepository;
     private final ForoRepository foroRepository;
+    private final CursoAccesoService cursoAccesoService;
 
     public CursoService(CursoRepository cursoRepository, DocenteRepository docenteRepository,
-            ForoRepository foroRepository) {
+            ForoRepository foroRepository, CursoAccesoService cursoAccesoService) {
         this.cursoRepository = cursoRepository;
         this.docenteRepository = docenteRepository;
         this.foroRepository = foroRepository;
+        this.cursoAccesoService = cursoAccesoService;
     }
 
     @Transactional
@@ -45,7 +47,7 @@ public class CursoService {
             docente = docenteRepository.findById(request.getDocenteId())
                     .orElseThrow(() -> new IllegalArgumentException("No existe un docente con ese id"));
         } else {
-            // Solo docentes y coordinadores tienen permisos para crear cursos. 
+            // Solo docentes y coordinadores tienen permisos para crear cursos.
             throw new AccessDeniedException("Solo un Docente o Coordinador Academico puede crear cursos");
         }
 
@@ -61,8 +63,8 @@ public class CursoService {
         curso.setImagenPortadaUrl(request.getImagenPortadaUrl());
 
         cursoRepository.save(curso);
-        
-        // Cada curso nuevo inicia con un foro asociado. 
+
+        // Cada curso nuevo inicia con un foro asociado.
         Foro foro = new Foro();
         foro.setCurso(curso);
         foroRepository.save(foro);
@@ -112,8 +114,8 @@ public class CursoService {
     }
 
     private void validarPermisoSobreCurso(Curso curso, Usuario solicitante) {
-        // El docente responsable, el creador o un coordinador pueden modificar el curso. 
-        boolean esDocenteDelCurso = curso.getDocente().getId().equals(solicitante.getId());
+        // El docente responsable, el creador o un coordinador pueden modificar el curso.
+        boolean esDocenteDelCurso = cursoAccesoService.esDocenteDelCurso(curso, solicitante);
         boolean esCreador = curso.getCreadoPor().getId().equals(solicitante.getId());
         boolean esCoordinador = solicitante instanceof CoordinadorAcademico;
 

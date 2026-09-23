@@ -20,7 +20,7 @@ public class RefreshToken {
     private Long id;
 
     @Column(nullable = false, unique = true)
-    // El token debe ser único para evitar que existan sesiones de actulización duplicadas. 
+    // El token debe ser único para evitar que existan sesiones de actualización duplicadas.
     private String token;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -31,7 +31,7 @@ public class RefreshToken {
     private LocalDateTime fechaExpiracion;
 
     @Column(nullable = false)
-    // Un token revocado ya no puede actualizarse para renovar la autenticación. 
+    // Un token revocado ya no puede actualizarse para renovar la autenticación.
     private boolean revocado = false;
 
     @CreationTimestamp

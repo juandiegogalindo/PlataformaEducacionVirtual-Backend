@@ -10,8 +10,8 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
+// Un estudiante no puede tener más de una inscripción para el mismo curso.
 @Entity
-// Un estudiante no puede tener más de una inscripción para el misnmo curso.
 @Table(name = "inscripciones", uniqueConstraints = @UniqueConstraint(columnNames = { "estudiante_id", "curso_id" }))
 @Getter
 @Setter
@@ -33,7 +33,7 @@ public class Inscripcion {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    // El estado inicial de una inscripción es ACTIVA. 
+    // El estado inicial de una inscripción es ACTIVA.
     private EstadoInscripcion estado = EstadoInscripcion.ACTIVA;
 
     @CreationTimestamp

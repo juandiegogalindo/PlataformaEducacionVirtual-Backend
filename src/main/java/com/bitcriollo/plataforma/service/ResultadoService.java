@@ -11,11 +11,9 @@ import com.bitcriollo.plataforma.model.Resultado;
 import com.bitcriollo.plataforma.model.Tarea;
 import com.bitcriollo.plataforma.model.Usuario;
 import com.bitcriollo.plataforma.model.enums.EstadoEvaluacion;
-import com.bitcriollo.plataforma.model.enums.EstadoInscripcion;
 import com.bitcriollo.plataforma.model.enums.EstadoResultado;
 import com.bitcriollo.plataforma.repository.CursoRepository;
 import com.bitcriollo.plataforma.repository.EvaluacionRepository;
-import com.bitcriollo.plataforma.repository.InscripcionRepository;
 import com.bitcriollo.plataforma.repository.ResultadoRepository;
 import org.hibernate.Hibernate;
 import org.springframework.security.access.AccessDeniedException;
@@ -34,17 +32,17 @@ public class ResultadoService {
 
     private final ResultadoRepository resultadoRepository;
     private final EvaluacionRepository evaluacionRepository;
-    private final InscripcionRepository inscripcionRepository;
     private final CursoRepository cursoRepository;
+    private final CursoAccesoService cursoAccesoService;
 
     public ResultadoService(ResultadoRepository resultadoRepository,
             EvaluacionRepository evaluacionRepository,
-            InscripcionRepository inscripcionRepository,
-            CursoRepository cursoRepository) {
+            CursoRepository cursoRepository,
+            CursoAccesoService cursoAccesoService) {
         this.resultadoRepository = resultadoRepository;
         this.evaluacionRepository = evaluacionRepository;
-        this.inscripcionRepository = inscripcionRepository;
         this.cursoRepository = cursoRepository;
+        this.cursoAccesoService = cursoAccesoService;
     }
 
     @Transactional
@@ -56,12 +54,8 @@ public class ResultadoService {
         Evaluacion evaluacion = (Evaluacion) Hibernate.unproxy(evaluacionRepository.findById(evaluacionId)
                 .orElseThrow(() -> new IllegalArgumentException("No existe una evaluacion con id " + evaluacionId)));
 
-        boolean inscripcionActiva = inscripcionRepository
-                .findByEstudianteIdAndCursoId(estudiante.getId(), evaluacion.getCurso().getId())
-                .filter(i -> i.getEstado() == EstadoInscripcion.ACTIVA)
-                .isPresent();
         // Solo los estudiantes con inscripción activa pueden registrar resultados.
-        if (!inscripcionActiva) {
+        if (!cursoAccesoService.estaInscritoActivo(evaluacion.getCurso(), estudiante)) {
             throw new AccessDeniedException("Debes tener una inscripcion activa en el curso");
         }
 
@@ -156,7 +150,7 @@ public class ResultadoService {
 
     private void validarDocenteDelCurso(Curso curso, Usuario usuario) {
         // Solo el docente asignado al curso puede gestionar sus calificaciones.
-        if (!curso.getDocente().getId().equals(usuario.getId())) {
+        if (!cursoAccesoService.esDocenteDelCurso(curso, usuario)) {
             throw new AccessDeniedException("Solo el docente del curso puede gestionar sus calificaciones");
         }
     }

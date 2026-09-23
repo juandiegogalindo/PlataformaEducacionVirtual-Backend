@@ -7,13 +7,17 @@ import com.bitcriollo.plataforma.service.MensajeForoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+// Solo Docente y Estudiante pueden llegar a participar en el foro (ver MensajeForoService); el
+// control de acceso especifico por curso/mensaje sigue resuelto en el servicio.
 @RestController
 @RequestMapping("/api/cursos/{cursoId}/foro/mensajes")
+@PreAuthorize("hasRole('DOCENTE') or hasRole('ESTUDIANTE')")
 public class MensajeForoController {
 
     private final MensajeForoService mensajeForoService;

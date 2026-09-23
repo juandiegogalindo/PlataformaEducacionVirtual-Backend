@@ -7,17 +7,14 @@ import com.bitcriollo.plataforma.dto.TareaRequest;
 import com.bitcriollo.plataforma.dto.TareaResponse;
 import com.bitcriollo.plataforma.model.CoordinadorAcademico;
 import com.bitcriollo.plataforma.model.Curso;
-import com.bitcriollo.plataforma.model.Estudiante;
 import com.bitcriollo.plataforma.model.Evaluacion;
 import com.bitcriollo.plataforma.model.Examen;
 import com.bitcriollo.plataforma.model.Tarea;
 import com.bitcriollo.plataforma.model.Usuario;
 import com.bitcriollo.plataforma.model.enums.EstadoEvaluacion;
-import com.bitcriollo.plataforma.model.enums.EstadoInscripcion;
 import com.bitcriollo.plataforma.repository.CursoRepository;
 import com.bitcriollo.plataforma.repository.EvaluacionRepository;
 import com.bitcriollo.plataforma.repository.ExamenRepository;
-import com.bitcriollo.plataforma.repository.InscripcionRepository;
 import com.bitcriollo.plataforma.repository.TareaRepository;
 import org.hibernate.Hibernate;
 import org.springframework.security.access.AccessDeniedException;
@@ -36,18 +33,18 @@ public class EvaluacionService {
     private final ExamenRepository examenRepository;
     private final TareaRepository tareaRepository;
     private final CursoRepository cursoRepository;
-    private final InscripcionRepository inscripcionRepository;
+    private final CursoAccesoService cursoAccesoService;
 
     public EvaluacionService(EvaluacionRepository evaluacionRepository,
             ExamenRepository examenRepository,
             TareaRepository tareaRepository,
             CursoRepository cursoRepository,
-            InscripcionRepository inscripcionRepository) {
+            CursoAccesoService cursoAccesoService) {
         this.evaluacionRepository = evaluacionRepository;
         this.examenRepository = examenRepository;
         this.tareaRepository = tareaRepository;
         this.cursoRepository = cursoRepository;
-        this.inscripcionRepository = inscripcionRepository;
+        this.cursoAccesoService = cursoAccesoService;
     }
 
     @Transactional(readOnly = true)
@@ -142,26 +139,19 @@ public class EvaluacionService {
                 .orElseThrow(() -> new IllegalArgumentException("No existe un curso con id " + cursoId));
     }
 
-    private boolean esDocenteDelCurso(Curso curso, Usuario usuario) {
-        return curso.getDocente().getId().equals(usuario.getId());
-    }
-
     private boolean puedeGestionar(Curso curso, Usuario usuario) {
-        return usuario instanceof CoordinadorAcademico || esDocenteDelCurso(curso, usuario);
+        return usuario instanceof CoordinadorAcademico || cursoAccesoService.esDocenteDelCurso(curso, usuario);
     }
 
     private void validarDocenteDelCurso(Curso curso, Usuario usuario) {
-        if (!esDocenteDelCurso(curso, usuario)) {
+        if (!cursoAccesoService.esDocenteDelCurso(curso, usuario)) {
             throw new AccessDeniedException("Solo el docente del curso puede gestionar sus evaluaciones");
         }
     }
 
+    // Mismo criterio de inscripcion activa que el resto de modulos de contenido del curso.
     private void validarEstudianteInscrito(Curso curso, Usuario usuario) {
-        boolean inscrito = usuario instanceof Estudiante
-                && inscripcionRepository.findByEstudianteIdAndCursoId(usuario.getId(), curso.getId())
-                        .filter(i -> i.getEstado() != EstadoInscripcion.CANCELADA)
-                        .isPresent();
-        if (!inscrito) {
+        if (!cursoAccesoService.estaInscritoActivo(curso, usuario)) {
             throw new AccessDeniedException("Debes estar inscrito en el curso para ver sus evaluaciones");
         }
     }

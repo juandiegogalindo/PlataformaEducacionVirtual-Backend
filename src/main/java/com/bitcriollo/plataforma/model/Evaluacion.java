@@ -27,7 +27,7 @@ public abstract class Evaluacion {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "curso_id", nullable = false)
-    // Una evaluación pertenece a un curso específico y se carga de forma diferida. 
+    // Una evaluación pertenece a un curso específico y se carga de forma diferida.
     private Curso curso;
 
     @Column(nullable = false)
@@ -41,7 +41,7 @@ public abstract class Evaluacion {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    // El estado inicial de toda evaluación es BORRADOR hasta que sea publicada. 
+    // El estado inicial de toda evaluación es BORRADOR hasta que sea publicada.
     private EstadoEvaluacion estado = EstadoEvaluacion.BORRADOR;
 
     @Column(name = "fecha_publicacion")

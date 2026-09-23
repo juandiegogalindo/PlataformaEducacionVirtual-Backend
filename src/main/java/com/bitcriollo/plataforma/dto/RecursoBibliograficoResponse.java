@@ -1,5 +1,6 @@
 package com.bitcriollo.plataforma.dto;
 
+import com.bitcriollo.plataforma.model.enums.TipoRecurso;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -13,7 +14,7 @@ public class RecursoBibliograficoResponse {
     private String titulo;
     private String autor;
     private Integer anioPublicacion;
-    private String tipoRecurso;
+    private TipoRecurso tipoRecurso;
     private String enlace;
     private LocalDateTime createdAt;
 }

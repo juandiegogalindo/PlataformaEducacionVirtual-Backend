@@ -3,9 +3,7 @@ package com.bitcriollo.plataforma.service;
 import com.bitcriollo.plataforma.dto.RecursoBibliograficoRequest;
 import com.bitcriollo.plataforma.dto.RecursoBibliograficoResponse;
 import com.bitcriollo.plataforma.model.*;
-import com.bitcriollo.plataforma.model.enums.EstadoInscripcion;
 import com.bitcriollo.plataforma.repository.CursoRepository;
-import com.bitcriollo.plataforma.repository.InscripcionRepository;
 import com.bitcriollo.plataforma.repository.RecursoBibliograficoRepository;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -18,14 +16,14 @@ public class RecursoBibliograficoService {
 
     private final RecursoBibliograficoRepository recursoRepository;
     private final CursoRepository cursoRepository;
-    private final InscripcionRepository inscripcionRepository;
+    private final CursoAccesoService cursoAccesoService;
 
     public RecursoBibliograficoService(RecursoBibliograficoRepository recursoRepository,
             CursoRepository cursoRepository,
-            InscripcionRepository inscripcionRepository) {
+            CursoAccesoService cursoAccesoService) {
         this.recursoRepository = recursoRepository;
         this.cursoRepository = cursoRepository;
-        this.inscripcionRepository = inscripcionRepository;
+        this.cursoAccesoService = cursoAccesoService;
     }
 
     @Transactional
@@ -97,28 +95,17 @@ public class RecursoBibliograficoService {
     }
 
     private void validarEsDocenteDueno(Curso curso, Usuario solicitante) {
-        boolean esDocenteDelCurso = curso.getDocente().getId().equals(solicitante.getId());
         // Solo el docente asignado al curso puede gestionar sus recursos bibliográficos.
-        if (!esDocenteDelCurso) {
+        if (!cursoAccesoService.esDocenteDelCurso(curso, solicitante)) {
             throw new AccessDeniedException("Solo el docente que dicta este curso puede gestionar sus recursos");
         }
     }
 
     private void validarAccesoLectura(Curso curso, Usuario solicitante) {
-        boolean esDocenteDelCurso = curso.getDocente().getId().equals(solicitante.getId());
-        if (esDocenteDelCurso) {
+        // Solo el docente del curso y los estudiantes con inscripción activa pueden consultar sus recursos.
+        if (cursoAccesoService.esDocenteDelCurso(curso, solicitante)
+                || cursoAccesoService.estaInscritoActivo(curso, solicitante)) {
             return;
-        }
-
-        if (solicitante instanceof Estudiante) {
-            boolean inscritoActivo = inscripcionRepository
-                    .findByEstudianteIdAndCursoId(solicitante.getId(), curso.getId())
-                    .filter(i -> i.getEstado() == EstadoInscripcion.ACTIVA)
-                    .isPresent();
-            // Solo los estudiantes con inscripción activa pueden consultar los recursos del curso.
-            if (inscritoActivo) {
-                return;
-            }
         }
 
         throw new AccessDeniedException("No tienes acceso al contenido de este curso");

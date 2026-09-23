@@ -1,5 +1,6 @@
 package com.bitcriollo.plataforma.model;
 
+import com.bitcriollo.plataforma.model.enums.TipoRecurso;
 import jakarta.persistence.*;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -33,8 +34,9 @@ public class RecursoBibliografico {
     @Column(name = "anio_publicacion")
     private Integer anioPublicacion;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "tipo_recurso", nullable = false)
-    private String tipoRecurso;
+    private TipoRecurso tipoRecurso;
 
     @Column(nullable = false)
     private String enlace;

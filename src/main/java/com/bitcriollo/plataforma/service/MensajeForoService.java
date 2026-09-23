@@ -3,7 +3,6 @@ package com.bitcriollo.plataforma.service;
 import com.bitcriollo.plataforma.dto.MensajeForoRequest;
 import com.bitcriollo.plataforma.dto.MensajeForoResponse;
 import com.bitcriollo.plataforma.model.*;
-import com.bitcriollo.plataforma.model.enums.EstadoInscripcion;
 import com.bitcriollo.plataforma.repository.*;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -17,16 +16,16 @@ public class MensajeForoService {
     private final MensajeForoRepository mensajeRepository;
     private final ForoRepository foroRepository;
     private final CursoRepository cursoRepository;
-    private final InscripcionRepository inscripcionRepository;
+    private final CursoAccesoService cursoAccesoService;
 
     public MensajeForoService(MensajeForoRepository mensajeRepository,
             ForoRepository foroRepository,
             CursoRepository cursoRepository,
-            InscripcionRepository inscripcionRepository) {
+            CursoAccesoService cursoAccesoService) {
         this.mensajeRepository = mensajeRepository;
         this.foroRepository = foroRepository;
         this.cursoRepository = cursoRepository;
-        this.inscripcionRepository = inscripcionRepository;
+        this.cursoAccesoService = cursoAccesoService;
     }
 
     @Transactional
@@ -107,20 +106,10 @@ public class MensajeForoService {
     }
 
     private void validarAccesoAlForo(Curso curso, Usuario solicitante) {
-        boolean esDocenteDelCurso = curso.getDocente().getId().equals(solicitante.getId());
-        if (esDocenteDelCurso) {
+        // Solo el docente del curso y los estudiantes con inscripción activa pueden participar en el foro.
+        if (cursoAccesoService.esDocenteDelCurso(curso, solicitante)
+                || cursoAccesoService.estaInscritoActivo(curso, solicitante)) {
             return;
-        }
-
-        if (solicitante instanceof Estudiante) {
-            boolean inscritoActivo = inscripcionRepository
-                    .findByEstudianteIdAndCursoId(solicitante.getId(), curso.getId())
-                    .filter(i -> i.getEstado() == EstadoInscripcion.ACTIVA)
-                    .isPresent();
-            // Solo los estudiantes con inscripción activa pueden participar en el foro.
-            if (inscritoActivo) {
-                return;
-            }
         }
 
         throw new AccessDeniedException("No tienes acceso al foro de este curso");
@@ -128,9 +117,8 @@ public class MensajeForoService {
 
     private void validarAutorOModerador(Curso curso, MensajeForo mensaje, Usuario solicitante) {
         boolean esAutor = mensaje.getUsuario().getId().equals(solicitante.getId());
-        boolean esDocenteDelCurso = curso.getDocente().getId().equals(solicitante.getId());
         // Solo el autor o el docente responsable del curso pueden modificar o eliminar el mensaje.
-        if (!esAutor && !esDocenteDelCurso) {
+        if (!esAutor && !cursoAccesoService.esDocenteDelCurso(curso, solicitante)) {
             throw new AccessDeniedException("Solo el autor o el docente del curso pueden modificar este mensaje");
         }
     }

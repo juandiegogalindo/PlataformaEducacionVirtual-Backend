@@ -36,7 +36,7 @@ public class Leccion {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo_contenido", nullable = false)
-    // El tipo de contenido define cómo se presenta la lección al estudiante. 
+    // El tipo de contenido define cómo se presenta la lección al estudiante.
     private TipoContenidoLeccion tipoContenido = TipoContenidoLeccion.TEXTO;
 
     @Column(name = "duracion_minutos")

@@ -28,7 +28,9 @@ public class InscripcionService {
 
     @Transactional
     public InscripcionResponse inscribirse(InscripcionRequest request, Estudiante estudiante) {
-        Curso curso = cursoRepository.findById(request.getCursoId())
+        // Se bloquea la fila del curso hasta el fin de la transaccion: dos inscripciones concurrentes
+        // sobre el mismo curso quedan serializadas y no pueden superar juntas el cupo maximo.
+        Curso curso = cursoRepository.findByIdParaInscripcion(request.getCursoId())
                 .orElseThrow(() -> new IllegalArgumentException("No existe un curso con id " + request.getCursoId()));
 
         // Solo los cursos activos pueden recibir nuevas inscripciones.
@@ -45,10 +47,9 @@ public class InscripcionService {
         }
 
         if (curso.getCupoMaximo() != null) {
-            // Se cuentan únicamente las inscripciones activas para controlar el cupo disponible.
-            long inscritosActivos = curso.getInscripciones().stream()
-                    .filter(i -> i.getEstado() == EstadoInscripcion.ACTIVA)
-                    .count();
+            // Se cuenta con una consulta dedicada en vez de cargar en memoria todo el historico de inscritos.
+            long inscritosActivos = inscripcionRepository.countByCursoIdAndEstado(curso.getId(),
+                    EstadoInscripcion.ACTIVA);
             if (inscritosActivos >= curso.getCupoMaximo()) {
                 throw new IllegalStateException("Este curso ya alcanzo su cupo maximo");
             }
