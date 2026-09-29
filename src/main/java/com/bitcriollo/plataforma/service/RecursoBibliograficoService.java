@@ -87,7 +87,8 @@ public class RecursoBibliograficoService {
     private RecursoBibliografico buscarRecursoDelCursoOLanzar(Long cursoId, Long recursoId) {
         RecursoBibliografico recurso = recursoRepository.findById(recursoId)
                 .orElseThrow(() -> new IllegalArgumentException("No existe un recurso con id " + recursoId));
-        // Se verifica que el recurso pertenezca al curso antes de permitir su modificación o eliminación.
+        // Se verifica que el recurso pertenezca al curso antes de permitir su
+        // modificación o eliminación.
         if (!recurso.getCurso().getId().equals(cursoId)) {
             throw new IllegalArgumentException("Ese recurso no pertenece a este curso");
         }
@@ -95,16 +96,21 @@ public class RecursoBibliograficoService {
     }
 
     private void validarEsDocenteDueno(Curso curso, Usuario solicitante) {
-        // Solo el docente asignado al curso puede gestionar sus recursos bibliográficos.
-        if (!cursoAccesoService.esDocenteDelCurso(curso, solicitante)) {
-            throw new AccessDeniedException("Solo el docente que dicta este curso puede gestionar sus recursos");
+        // El docente asignado al curso y cualquier coordinador academico pueden
+        // gestionar sus recursos bibliograficos.
+        if (!cursoAccesoService.esDocenteDelCurso(curso, solicitante)
+                && !cursoAccesoService.esCoordinador(solicitante)) {
+            throw new AccessDeniedException(
+                    "Solo el docente que dicta este curso o un coordinador pueden gestionar sus recursos");
         }
     }
 
     private void validarAccesoLectura(Curso curso, Usuario solicitante) {
-        // Solo el docente del curso y los estudiantes con inscripción activa pueden consultar sus recursos.
+        // Pueden consultar los recursos el docente, los coordinadores y los estudiantes
+        // con inscripcion vigente.
         if (cursoAccesoService.esDocenteDelCurso(curso, solicitante)
-                || cursoAccesoService.estaInscritoActivo(curso, solicitante)) {
+                || cursoAccesoService.esCoordinador(solicitante)
+                || cursoAccesoService.tieneAccesoDeLectura(curso, solicitante)) {
             return;
         }
 

@@ -86,7 +86,8 @@ public class LeccionService {
     private Leccion buscarLeccionDelCursoOLanzar(Long cursoId, Long leccionId) {
         Leccion leccion = leccionRepository.findById(leccionId)
                 .orElseThrow(() -> new IllegalArgumentException("No existe una leccion con id " + leccionId));
-        // Se verifica que la lección pertenezca al curso solicitado antes de permitir su gestión.
+        // Se verifica que la lección pertenezca al curso solicitado antes de permitir
+        // su gestión.
         if (!leccion.getCurso().getId().equals(cursoId)) {
             throw new IllegalArgumentException("Esa leccion no pertenece a este curso");
         }
@@ -94,16 +95,21 @@ public class LeccionService {
     }
 
     private void validarEsDocenteDueno(Curso curso, Usuario solicitante) {
-        // Solo el docente asignado al curso puede crear, modificar o eliminar sus lecciones.
-        if (!cursoAccesoService.esDocenteDelCurso(curso, solicitante)) {
-            throw new AccessDeniedException("Solo el docente que dicta este curso puede gestionar sus lecciones");
+        // El docente asignado al curso y cualquier coordinador academico pueden
+        // gestionar sus lecciones.
+        if (!cursoAccesoService.esDocenteDelCurso(curso, solicitante)
+                && !cursoAccesoService.esCoordinador(solicitante)) {
+            throw new AccessDeniedException(
+                    "Solo el docente que dicta este curso o un coordinador pueden gestionar sus lecciones");
         }
     }
 
     private void validarAccesoLectura(Curso curso, Usuario solicitante) {
-        // El contenido del curso solo está disponible para su docente y para estudiantes con inscripción activa.
+        // El contenido esta disponible para el docente, los coordinadores y los
+        // estudiantes con inscripcion vigente.
         if (cursoAccesoService.esDocenteDelCurso(curso, solicitante)
-                || cursoAccesoService.estaInscritoActivo(curso, solicitante)) {
+                || cursoAccesoService.esCoordinador(solicitante)
+                || cursoAccesoService.tieneAccesoDeLectura(curso, solicitante)) {
             return;
         }
 

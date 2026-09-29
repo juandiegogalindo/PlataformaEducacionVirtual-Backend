@@ -6,6 +6,7 @@ import com.bitcriollo.plataforma.model.Usuario;
 import com.bitcriollo.plataforma.model.enums.EstadoInscripcion;
 import com.bitcriollo.plataforma.repository.InscripcionRepository;
 import org.springframework.stereotype.Service;
+import com.bitcriollo.plataforma.model.CoordinadorAcademico;
 
 // Componente transversal reutilizado por los servicios de Contenidos, Evaluacion e Interaccion para
 // evitar reimplementar en cada uno la comprobacion de si un usuario dicta un curso o si un estudiante
@@ -23,7 +24,23 @@ public class CursoAccesoService {
         return curso.getDocente().getId().equals(usuario.getId());
     }
 
-    // Un estudiante solo tiene acceso al contenido de un curso mientras su inscripcion este ACTIVA.
+    // Un coordinador academico supervisa y gestiona el contenido de cualquier
+    // curso.
+    public boolean esCoordinador(Usuario usuario) {
+        return usuario instanceof CoordinadorAcademico;
+    }
+
+    // Un estudiante puede CONSULTAR el contenido de un curso mientras su
+    // inscripcion no este CANCELADA
+    public boolean tieneAccesoDeLectura(Curso curso, Usuario usuario) {
+        return usuario instanceof Estudiante
+                && inscripcionRepository.findByEstudianteIdAndCursoId(usuario.getId(), curso.getId())
+                        .filter(i -> i.getEstado() != EstadoInscripcion.CANCELADA)
+                        .isPresent();
+    }
+
+    // Un estudiante solo tiene acceso al contenido de un curso mientras su
+    // inscripcion este ACTIVA.
     public boolean estaInscritoActivo(Curso curso, Usuario usuario) {
         return usuario instanceof Estudiante
                 && inscripcionRepository.findByEstudianteIdAndCursoId(usuario.getId(), curso.getId())

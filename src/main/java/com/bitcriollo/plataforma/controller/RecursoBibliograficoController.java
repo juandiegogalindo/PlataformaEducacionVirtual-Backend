@@ -24,7 +24,7 @@ public class RecursoBibliograficoController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('DOCENTE')")
+    @PreAuthorize("hasRole('DOCENTE') or hasRole('COORDINADORACADEMICO')")
     public ResponseEntity<RecursoBibliograficoResponse> crearRecurso(@PathVariable Long cursoId,
             @Valid @RequestBody RecursoBibliograficoRequest request,
             @AuthenticationPrincipal UsuarioDetailsImpl userDetails) {
@@ -39,7 +39,7 @@ public class RecursoBibliograficoController {
     }
 
     @PutMapping("/{recursoId}")
-    @PreAuthorize("hasRole('DOCENTE')")
+    @PreAuthorize("hasRole('DOCENTE') or hasRole('COORDINADORACADEMICO')")
     public ResponseEntity<RecursoBibliograficoResponse> actualizarRecurso(@PathVariable Long cursoId,
             @PathVariable Long recursoId,
             @Valid @RequestBody RecursoBibliograficoRequest request,
@@ -50,7 +50,7 @@ public class RecursoBibliograficoController {
     }
 
     @DeleteMapping("/{recursoId}")
-    @PreAuthorize("hasRole('DOCENTE')")
+    @PreAuthorize("hasRole('DOCENTE') or hasRole('COORDINADORACADEMICO')")
     public ResponseEntity<Void> eliminarRecurso(@PathVariable Long cursoId,
             @PathVariable Long recursoId,
             @AuthenticationPrincipal UsuarioDetailsImpl userDetails) {

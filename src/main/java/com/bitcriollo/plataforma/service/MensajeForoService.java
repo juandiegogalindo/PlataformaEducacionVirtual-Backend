@@ -31,7 +31,7 @@ public class MensajeForoService {
     @Transactional
     public MensajeForoResponse publicarMensaje(Long cursoId, MensajeForoRequest request, Usuario autor) {
         Curso curso = buscarCursoOLanzar(cursoId);
-        validarAccesoAlForo(curso, autor);
+        validarParticipacionEnForo(curso, autor);
         Foro foro = foroRepository.findByCursoId(cursoId)
                 .orElseThrow(() -> new IllegalStateException("Este curso todavia no tiene foro asociado"));
 
@@ -98,7 +98,8 @@ public class MensajeForoService {
     private MensajeForo buscarMensajeDelCursoOLanzar(Curso curso, Long mensajeId) {
         MensajeForo mensaje = mensajeRepository.findById(mensajeId)
                 .orElseThrow(() -> new IllegalArgumentException("No existe un mensaje con id " + mensajeId));
-        // Se valida que el mensaje pertenezca al curso antes de permitir su modificación o eliminación.
+        // Se valida que el mensaje pertenezca al curso antes de permitir su
+        // modificación o eliminación.
         if (!mensaje.getForo().getCurso().getId().equals(curso.getId())) {
             throw new IllegalArgumentException("Ese mensaje no pertenece a este curso");
         }
@@ -106,9 +107,23 @@ public class MensajeForoService {
     }
 
     private void validarAccesoAlForo(Curso curso, Usuario solicitante) {
-        // Solo el docente del curso y los estudiantes con inscripción activa pueden participar en el foro.
+        // Pueden consultar el foro el docente, los coordinadores y los estudiantes con
+        // inscripcion vigente.
         if (cursoAccesoService.esDocenteDelCurso(curso, solicitante)
-                || cursoAccesoService.estaInscritoActivo(curso, solicitante)) {
+                || cursoAccesoService.esCoordinador(solicitante)
+                || cursoAccesoService.tieneAccesoDeLectura(curso, solicitante)) {
+            return;
+        }
+
+        throw new AccessDeniedException("No tienes acceso al foro de este curso");
+    }
+
+    private void validarParticipacionEnForo(Curso curso, Usuario autor) {
+        // Para publicar, el estudiante debe tener la inscripcion ACTIVA; docente y
+        // coordinadores siempre pueden.
+        if (cursoAccesoService.esDocenteDelCurso(curso, autor)
+                || cursoAccesoService.esCoordinador(autor)
+                || cursoAccesoService.estaInscritoActivo(curso, autor)) {
             return;
         }
 
@@ -117,9 +132,13 @@ public class MensajeForoService {
 
     private void validarAutorOModerador(Curso curso, MensajeForo mensaje, Usuario solicitante) {
         boolean esAutor = mensaje.getUsuario().getId().equals(solicitante.getId());
-        // Solo el autor o el docente responsable del curso pueden modificar o eliminar el mensaje.
-        if (!esAutor && !cursoAccesoService.esDocenteDelCurso(curso, solicitante)) {
-            throw new AccessDeniedException("Solo el autor o el docente del curso pueden modificar este mensaje");
+        // El autor, el docente responsable del curso o un coordinador (moderacion)
+        // pueden modificar o eliminar el mensaje.
+        if (!esAutor
+                && !cursoAccesoService.esDocenteDelCurso(curso, solicitante)
+                && !cursoAccesoService.esCoordinador(solicitante)) {
+            throw new AccessDeniedException(
+                    "Solo el autor, el docente del curso o un coordinador pueden modificar este mensaje");
         }
     }
 

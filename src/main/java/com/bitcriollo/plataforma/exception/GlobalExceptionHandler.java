@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
@@ -28,14 +29,16 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ErrorResponse> manejarIllegalState(IllegalStateException ex) {
-        // Los conflictos derivados del estado actual del recurso se informan como HTTP 409.
+        // Los conflictos derivados del estado actual del recurso se informan como HTTP
+        // 409.
         ErrorResponse error = new ErrorResponse(LocalDateTime.now(), HttpStatus.CONFLICT.value(), ex.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> manejarValidacion(MethodArgumentNotValidException ex) {
-        // Se agrupan los errores de validación para devolver un mensaje descriptivo al cliente.
+        // Se agrupan los errores de validación para devolver un mensaje descriptivo al
+        // cliente.
         String mensaje = ex.getBindingResult().getFieldErrors().stream()
                 .map(fieldError -> fieldError.getField() + ": " + fieldError.getDefaultMessage())
                 .collect(Collectors.joining(" | "));
@@ -44,9 +47,21 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
-    public ResponseEntity<ErrorResponse> manejarAccesoDenegado(org.springframework.security.access.AccessDeniedException ex) {
+    public ResponseEntity<ErrorResponse> manejarAccesoDenegado(
+            org.springframework.security.access.AccessDeniedException ex) {
         // Los accesos rechazados por permisos insuficientes se informan como HTTP 403.
         ErrorResponse error = new ErrorResponse(LocalDateTime.now(), HttpStatus.FORBIDDEN.value(), ex.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> manejarIntegridadDatos(DataIntegrityViolationException ex) {
+        // Las violaciones de restricciones de la base de datos (unicidad, llaves
+        // foraneas, campos obligatorios)
+        // se informan como HTTP 409 con un mensaje generico, sin exponer detalles
+        // internos de la base de datos.
+        ErrorResponse error = new ErrorResponse(LocalDateTime.now(), HttpStatus.CONFLICT.value(),
+                "Ya existe un registro con esos datos, o se violo una restriccion de la base de datos");
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 }

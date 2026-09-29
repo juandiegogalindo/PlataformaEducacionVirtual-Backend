@@ -17,7 +17,7 @@ import java.util.List;
 // control de acceso especifico por curso/mensaje sigue resuelto en el servicio.
 @RestController
 @RequestMapping("/api/cursos/{cursoId}/foro/mensajes")
-@PreAuthorize("hasRole('DOCENTE') or hasRole('ESTUDIANTE')")
+@PreAuthorize("hasRole('DOCENTE') or hasRole('ESTUDIANTE') or hasRole('COORDINADORACADEMICO')")
 public class MensajeForoController {
 
     private final MensajeForoService mensajeForoService;

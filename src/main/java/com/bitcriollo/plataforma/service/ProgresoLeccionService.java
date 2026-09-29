@@ -39,7 +39,8 @@ public class ProgresoLeccionService {
 
         Leccion leccion = leccionRepository.findById(leccionId)
                 .orElseThrow(() -> new IllegalArgumentException("No existe una leccion con id " + leccionId));
-        // Se verifica que la lección pertenezca al curso antes de registrar su progreso.
+        // Se verifica que la lección pertenezca al curso antes de registrar su
+        // progreso.
         if (!leccion.getCurso().getId().equals(cursoId)) {
             throw new IllegalArgumentException("Esa leccion no pertenece a este curso");
         }
@@ -54,7 +55,8 @@ public class ProgresoLeccionService {
                 });
 
         progreso.setCompletado(request.getCompletado());
-        // La fecha de completado solo se registra cuando la lección queda marcada como completada.
+        // La fecha de completado solo se registra cuando la lección queda marcada como
+        // completada.
         progreso.setFechaCompletado(request.getCompletado() ? LocalDateTime.now() : null);
 
         progresoRepository.save(progreso);
@@ -63,7 +65,7 @@ public class ProgresoLeccionService {
 
     @Transactional(readOnly = true)
     public CursoProgresoResponse obtenerProgresoCurso(Long cursoId, Estudiante estudiante) {
-        validarInscritoActivo(cursoId, estudiante);
+        validarAccesoLecturaProgreso(cursoId, estudiante);
 
         List<Leccion> lecciones = leccionRepository.findByCursoIdOrderByOrdenAsc(cursoId);
 
@@ -91,9 +93,21 @@ public class ProgresoLeccionService {
         Curso curso = cursoRepository.findById(cursoId)
                 .orElseThrow(() -> new IllegalArgumentException("No existe un curso con id " + cursoId));
 
-        // Solo los estudiantes con una inscripción activa pueden registrar o consultar su progreso.
+        // Solo los estudiantes con una inscripción activa pueden registrar o consultar
+        // su progreso.
         if (!cursoAccesoService.estaInscritoActivo(curso, estudiante)) {
             throw new AccessDeniedException("No estas inscrito activamente en este curso");
+        }
+    }
+
+    private void validarAccesoLecturaProgreso(Long cursoId, Estudiante estudiante) {
+        Curso curso = cursoRepository.findById(cursoId)
+                .orElseThrow(() -> new IllegalArgumentException("No existe un curso con id " + cursoId));
+
+        // Un estudiante que ya termino el curso (COMPLETADA) aun puede consultar su
+        // avance; solo se excluye CANCELADA.
+        if (!cursoAccesoService.tieneAccesoDeLectura(curso, estudiante)) {
+            throw new AccessDeniedException("No tienes acceso al progreso de este curso");
         }
     }
 
