@@ -16,7 +16,7 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:8080"
+      "value": "https://plataformaeducacionvirtual-backend.onrender.com"
     },
     {
       "key": "token",
@@ -60,6 +60,10 @@
     },
     {
       "key": "recursoId",
+      "value": ""
+    },
+    {
+      "key": "mensajeId",
       "value": ""
     }
   ],
@@ -1116,7 +1120,152 @@
       ]
     },
     {
-      "name": "9. Evaluaciones (Fase E)",
+      "name": "9. Foro",
+      "item": [
+        {
+          "name": "Publicar mensaje en el foro (docente/estudiante)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/{{cursoId}}/foro/mensajes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}",
+                "foro",
+                "mensajes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contenido\": \"Bienvenidos al curso, cualquier duda la resolvemos aqui\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) pm.collectionVariables.set('mensajeId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Responder un mensaje del foro",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/{{cursoId}}/foro/mensajes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}",
+                "foro",
+                "mensajes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contenido\": \"Gracias profe!\",\n  \"mensajePadreId\": \"{{mensajeId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Listar mensajes del foro",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/{{cursoId}}/foro/mensajes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}",
+                "foro",
+                "mensajes"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Editar mensaje propio",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/{{cursoId}}/foro/mensajes/{{mensajeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}",
+                "foro",
+                "mensajes",
+                "{{mensajeId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contenido\": \"Bienvenidos al curso (editado)\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Eliminar mensaje propio",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/{{cursoId}}/foro/mensajes/{{mensajeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}",
+                "foro",
+                "mensajes",
+                "{{mensajeId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Evaluaciones (Fase E)",
       "item": [
         {
           "name": "Listar evaluaciones del curso",
@@ -1292,7 +1441,7 @@
       ]
     },
     {
-      "name": "10. Resultados (Fase E)",
+      "name": "11. Resultados (Fase E)",
       "item": [
         {
           "name": "Registrar intento de examen (estudiante)",
