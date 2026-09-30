@@ -1,0 +1,68 @@
+src/main/java/com/bitcriollo/plataforma/controller/AdminController.java:12:import org.springframework.web.bind.annotation.GetMapping;
+src/main/java/com/bitcriollo/plataforma/controller/AdminController.java:14:import org.springframework.web.bind.annotation.PatchMapping;
+src/main/java/com/bitcriollo/plataforma/controller/AdminController.java:16:import org.springframework.web.bind.annotation.PostMapping;
+src/main/java/com/bitcriollo/plataforma/controller/AdminController.java:18:import org.springframework.web.bind.annotation.RequestMapping;
+src/main/java/com/bitcriollo/plataforma/controller/AdminController.java:22:@RequestMapping("/api/admin")
+src/main/java/com/bitcriollo/plataforma/controller/AdminController.java:32:    @PostMapping("/docentes")
+src/main/java/com/bitcriollo/plataforma/controller/AdminController.java:38:    @PostMapping("/administradores")
+src/main/java/com/bitcriollo/plataforma/controller/AdminController.java:44:    @PostMapping("/coordinadores")
+src/main/java/com/bitcriollo/plataforma/controller/AdminController.java:50:    @GetMapping("/docentes")
+src/main/java/com/bitcriollo/plataforma/controller/AdminController.java:55:    @GetMapping("/administradores")
+src/main/java/com/bitcriollo/plataforma/controller/AdminController.java:60:    @GetMapping("/coordinadores")
+src/main/java/com/bitcriollo/plataforma/controller/AdminController.java:65:    @GetMapping("/estudiantes")
+src/main/java/com/bitcriollo/plataforma/controller/AdminController.java:70:    @PatchMapping("/usuarios/{id}/desactivar")
+src/main/java/com/bitcriollo/plataforma/controller/AdminController.java:75:    @PatchMapping("/usuarios/{id}/activar")
+src/main/java/com/bitcriollo/plataforma/controller/AuthController.java:15:@RequestMapping("/api/auth")
+src/main/java/com/bitcriollo/plataforma/controller/AuthController.java:24:    @PostMapping("/registro")
+src/main/java/com/bitcriollo/plataforma/controller/AuthController.java:30:    @PostMapping("/login")
+src/main/java/com/bitcriollo/plataforma/controller/AuthController.java:37:    @PostMapping("/refresh")
+src/main/java/com/bitcriollo/plataforma/controller/AuthController.java:43:    @PostMapping("/logout")
+src/main/java/com/bitcriollo/plataforma/controller/CursoController.java:18:@RequestMapping("/api/cursos")
+src/main/java/com/bitcriollo/plataforma/controller/CursoController.java:27:    @PostMapping
+src/main/java/com/bitcriollo/plataforma/controller/CursoController.java:36:    @GetMapping
+src/main/java/com/bitcriollo/plataforma/controller/CursoController.java:41:    @GetMapping("/{id}")
+src/main/java/com/bitcriollo/plataforma/controller/CursoController.java:46:    @PutMapping("/{id}")
+src/main/java/com/bitcriollo/plataforma/controller/CursoController.java:55:    @DeleteMapping("/{id}")
+src/main/java/com/bitcriollo/plataforma/controller/EvaluacionController.java:20:@RequestMapping("/api")
+src/main/java/com/bitcriollo/plataforma/controller/EvaluacionController.java:29:    @GetMapping("/cursos/{cursoId}/evaluaciones")
+src/main/java/com/bitcriollo/plataforma/controller/EvaluacionController.java:35:    @PostMapping("/cursos/{cursoId}/examenes")
+src/main/java/com/bitcriollo/plataforma/controller/EvaluacionController.java:44:    @GetMapping("/examenes/{id}")
+src/main/java/com/bitcriollo/plataforma/controller/EvaluacionController.java:50:    @PostMapping("/cursos/{cursoId}/tareas")
+src/main/java/com/bitcriollo/plataforma/controller/EvaluacionController.java:59:    @GetMapping("/tareas/{id}")
+src/main/java/com/bitcriollo/plataforma/controller/EvaluacionController.java:65:    @PatchMapping("/evaluaciones/{id}/publicar")
+src/main/java/com/bitcriollo/plataforma/controller/HealthController.java:3:import org.springframework.web.bind.annotation.GetMapping;
+src/main/java/com/bitcriollo/plataforma/controller/HealthController.java:11:    @GetMapping("/api/health")
+src/main/java/com/bitcriollo/plataforma/controller/InscripcionController.java:18:@RequestMapping("/api/inscripciones")
+src/main/java/com/bitcriollo/plataforma/controller/InscripcionController.java:28:    @PostMapping
+src/main/java/com/bitcriollo/plataforma/controller/InscripcionController.java:36:    @PatchMapping("/{id}/cancelar")
+src/main/java/com/bitcriollo/plataforma/controller/InscripcionController.java:44:    @GetMapping("/mis-cursos")
+src/main/java/com/bitcriollo/plataforma/controller/LeccionController.java:17:@RequestMapping("/api/cursos/{cursoId}/lecciones")
+src/main/java/com/bitcriollo/plataforma/controller/LeccionController.java:26:    @PostMapping
+src/main/java/com/bitcriollo/plataforma/controller/LeccionController.java:35:    @GetMapping
+src/main/java/com/bitcriollo/plataforma/controller/LeccionController.java:41:    @PutMapping("/{leccionId}")
+src/main/java/com/bitcriollo/plataforma/controller/LeccionController.java:52:    @DeleteMapping("/{leccionId}")
+src/main/java/com/bitcriollo/plataforma/controller/MensajeForoController.java:19:@RequestMapping("/api/cursos/{cursoId}/foro/mensajes")
+src/main/java/com/bitcriollo/plataforma/controller/MensajeForoController.java:29:    @GetMapping
+src/main/java/com/bitcriollo/plataforma/controller/MensajeForoController.java:35:    @PostMapping
+src/main/java/com/bitcriollo/plataforma/controller/MensajeForoController.java:43:    @PutMapping("/{mensajeId}")
+src/main/java/com/bitcriollo/plataforma/controller/MensajeForoController.java:53:    @DeleteMapping("/{mensajeId}")
+src/main/java/com/bitcriollo/plataforma/controller/PerfilController.java:10:import org.springframework.web.bind.annotation.GetMapping;
+src/main/java/com/bitcriollo/plataforma/controller/PerfilController.java:11:import org.springframework.web.bind.annotation.PatchMapping;
+src/main/java/com/bitcriollo/plataforma/controller/PerfilController.java:13:import org.springframework.web.bind.annotation.RequestMapping;
+src/main/java/com/bitcriollo/plataforma/controller/PerfilController.java:19:@RequestMapping("/api/perfil")
+src/main/java/com/bitcriollo/plataforma/controller/PerfilController.java:28:    @GetMapping
+src/main/java/com/bitcriollo/plataforma/controller/PerfilController.java:33:    @PatchMapping
+src/main/java/com/bitcriollo/plataforma/controller/PerfilController.java:40:    @PatchMapping("/contrasena")
+src/main/java/com/bitcriollo/plataforma/controller/ProgresoLeccionController.java:16:@RequestMapping("/api/cursos/{cursoId}")
+src/main/java/com/bitcriollo/plataforma/controller/ProgresoLeccionController.java:26:    @PatchMapping("/lecciones/{leccionId}/progreso")
+src/main/java/com/bitcriollo/plataforma/controller/ProgresoLeccionController.java:35:    @GetMapping("/progreso")
+src/main/java/com/bitcriollo/plataforma/controller/RecursoBibliograficoController.java:17:@RequestMapping("/api/cursos/{cursoId}/recursos")
+src/main/java/com/bitcriollo/plataforma/controller/RecursoBibliograficoController.java:26:    @PostMapping
+src/main/java/com/bitcriollo/plataforma/controller/RecursoBibliograficoController.java:35:    @GetMapping
+src/main/java/com/bitcriollo/plataforma/controller/RecursoBibliograficoController.java:41:    @PutMapping("/{recursoId}")
+src/main/java/com/bitcriollo/plataforma/controller/RecursoBibliograficoController.java:52:    @DeleteMapping("/{recursoId}")
+src/main/java/com/bitcriollo/plataforma/controller/ResultadoController.java:18:@RequestMapping("/api")
+src/main/java/com/bitcriollo/plataforma/controller/ResultadoController.java:27:    @PostMapping("/evaluaciones/{evaluacionId}/resultados")
+src/main/java/com/bitcriollo/plataforma/controller/ResultadoController.java:38:    @PatchMapping("/resultados/{id}/calificar")
+src/main/java/com/bitcriollo/plataforma/controller/ResultadoController.java:46:    @GetMapping("/resultados/mis-calificaciones")
+src/main/java/com/bitcriollo/plataforma/controller/ResultadoController.java:53:    @GetMapping("/cursos/{cursoId}/calificaciones")
