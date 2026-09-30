@@ -64,4 +64,15 @@ public class GlobalExceptionHandler {
                 "Ya existe un registro con esos datos, o se violo una restriccion de la base de datos");
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
+
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> manejarCuerpoInvalido(
+            org.springframework.http.converter.HttpMessageNotReadableException ex) {
+        // El JSON no se pudo convertir: JSON mal formado, o un campo con formato
+        // invalido
+        // (por ejemplo una fecha que no cumple ISO-8601, como mes 13 u hora 25).
+        ErrorResponse error = new ErrorResponse(LocalDateTime.now(), HttpStatus.BAD_REQUEST.value(),
+                "El cuerpo de la solicitud tiene un formato invalido: revisa que los campos (fechas, numeros, etc.) cumplan el formato esperado");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
 }

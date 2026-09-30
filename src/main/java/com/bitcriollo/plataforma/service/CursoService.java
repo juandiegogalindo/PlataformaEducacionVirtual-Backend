@@ -14,6 +14,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.bitcriollo.plataforma.repository.ForoRepository;
+import java.time.LocalDate;
 
 import java.util.List;
 
@@ -49,6 +50,14 @@ public class CursoService {
         } else {
             // Solo docentes y coordinadores tienen permisos para crear cursos.
             throw new AccessDeniedException("Solo un Docente o Coordinador Academico puede crear cursos");
+        }
+
+        validarSinCruceDeHorario(docente, request.getFechaInicio(), request.getFechaFin(), null);
+
+        if (cursoRepository.existsByNombreAndDocenteIdAndFechaInicioAndFechaFin(
+                request.getNombre(), docente.getId(), request.getFechaInicio(), request.getFechaFin())) {
+            throw new IllegalStateException(
+                    "Ya existe un curso identico (mismo nombre, docente y fechas) registrado");
         }
 
         Curso curso = new Curso();
@@ -89,12 +98,23 @@ public class CursoService {
         Curso curso = buscarCursoOLanzar(id);
         validarPermisoSobreCurso(curso, solicitante);
 
+        // Si se envia un docenteId distinto al actual, se reasigna el curso a ese
+        // docente.
+        Docente docente = curso.getDocente();
+        if (request.getDocenteId() != null && !request.getDocenteId().equals(docente.getId())) {
+            docente = docenteRepository.findById(request.getDocenteId())
+                    .orElseThrow(() -> new IllegalArgumentException("No existe un docente con ese id"));
+        }
+
+        validarSinCruceDeHorario(docente, request.getFechaInicio(), request.getFechaFin(), curso.getId());
+
         curso.setNombre(request.getNombre());
         curso.setDescripcion(request.getDescripcion());
         curso.setFechaInicio(request.getFechaInicio());
         curso.setFechaFin(request.getFechaFin());
         curso.setCupoMaximo(request.getCupoMaximo());
         curso.setImagenPortadaUrl(request.getImagenPortadaUrl());
+        curso.setDocente(docente);
 
         cursoRepository.save(curso);
         return mapearAResponse(curso);
@@ -113,8 +133,19 @@ public class CursoService {
                 .orElseThrow(() -> new IllegalArgumentException("No existe un curso con id " + id));
     }
 
+    private void validarSinCruceDeHorario(Docente docente, LocalDate fechaInicio, LocalDate fechaFin,
+            Long cursoIdExcluir) {
+        long cruces = cursoRepository.countCursosActivosConCruce(docente.getId(), cursoIdExcluir, fechaInicio,
+                fechaFin);
+        if (cruces > 0) {
+            throw new IllegalStateException(
+                    "El docente ya dicta otro curso activo cuyas fechas se cruzan con las indicadas");
+        }
+    }
+
     private void validarPermisoSobreCurso(Curso curso, Usuario solicitante) {
-        // El docente responsable, el creador o un coordinador pueden modificar el curso.
+        // El docente responsable, el creador o un coordinador pueden modificar el
+        // curso.
         boolean esDocenteDelCurso = cursoAccesoService.esDocenteDelCurso(curso, solicitante);
         boolean esCreador = curso.getCreadoPor().getId().equals(solicitante.getId());
         boolean esCoordinador = solicitante instanceof CoordinadorAcademico;
