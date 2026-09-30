@@ -39,6 +39,6 @@ public interface CursoRepository extends JpaRepository<Curso, Long> {
 
     // Un curso se considera "el mismo" si coincide exactamente en nombre, docente y
     // fechas.
-    boolean existsByNombreAndDocenteIdAndFechaInicioAndFechaFin(String nombre, Long docenteId,
-            LocalDate fechaInicio, LocalDate fechaFin);
+    boolean existsByNombreAndDocenteIdAndFechaInicioAndFechaFinAndEstado(String nombre, Long docenteId,
+            LocalDate fechaInicio, LocalDate fechaFin, EstadoCurso estado);
 }

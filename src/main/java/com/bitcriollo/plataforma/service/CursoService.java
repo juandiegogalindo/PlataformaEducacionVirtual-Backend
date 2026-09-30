@@ -54,8 +54,9 @@ public class CursoService {
 
         validarSinCruceDeHorario(docente, request.getFechaInicio(), request.getFechaFin(), null);
 
-        if (cursoRepository.existsByNombreAndDocenteIdAndFechaInicioAndFechaFin(
-                request.getNombre(), docente.getId(), request.getFechaInicio(), request.getFechaFin())) {
+        if (cursoRepository.existsByNombreAndDocenteIdAndFechaInicioAndFechaFinAndEstado(
+                request.getNombre(), docente.getId(), request.getFechaInicio(), request.getFechaFin(),
+                EstadoCurso.ACTIVO)) {
             throw new IllegalStateException(
                     "Ya existe un curso identico (mismo nombre, docente y fechas) registrado");
         }
