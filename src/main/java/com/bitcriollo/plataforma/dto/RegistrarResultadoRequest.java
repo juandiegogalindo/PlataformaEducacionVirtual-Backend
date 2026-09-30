@@ -7,6 +7,6 @@ import lombok.Setter;
 @Setter
 public class RegistrarResultadoRequest {
 
-    // Obligatorio para tareas (texto o enlace de la entrega); opcional para examenes
+    // El contenido es obligatorio para tareas y opcional para exámenes.
     private String contenido;
 }

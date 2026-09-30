@@ -4,7 +4,6 @@ import com.bitcriollo.plataforma.dto.CursoProgresoResponse;
 import com.bitcriollo.plataforma.dto.ProgresoLeccionRequest;
 import com.bitcriollo.plataforma.dto.ProgresoLeccionResponse;
 import com.bitcriollo.plataforma.model.*;
-import com.bitcriollo.plataforma.model.enums.EstadoInscripcion;
 import com.bitcriollo.plataforma.repository.*;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -21,16 +20,16 @@ public class ProgresoLeccionService {
     private final ProgresoLeccionRepository progresoRepository;
     private final LeccionRepository leccionRepository;
     private final CursoRepository cursoRepository;
-    private final InscripcionRepository inscripcionRepository;
+    private final CursoAccesoService cursoAccesoService;
 
     public ProgresoLeccionService(ProgresoLeccionRepository progresoRepository,
             LeccionRepository leccionRepository,
             CursoRepository cursoRepository,
-            InscripcionRepository inscripcionRepository) {
+            CursoAccesoService cursoAccesoService) {
         this.progresoRepository = progresoRepository;
         this.leccionRepository = leccionRepository;
         this.cursoRepository = cursoRepository;
-        this.inscripcionRepository = inscripcionRepository;
+        this.cursoAccesoService = cursoAccesoService;
     }
 
     @Transactional
@@ -40,6 +39,8 @@ public class ProgresoLeccionService {
 
         Leccion leccion = leccionRepository.findById(leccionId)
                 .orElseThrow(() -> new IllegalArgumentException("No existe una leccion con id " + leccionId));
+        // Se verifica que la lección pertenezca al curso antes de registrar su
+        // progreso.
         if (!leccion.getCurso().getId().equals(cursoId)) {
             throw new IllegalArgumentException("Esa leccion no pertenece a este curso");
         }
@@ -54,6 +55,8 @@ public class ProgresoLeccionService {
                 });
 
         progreso.setCompletado(request.getCompletado());
+        // La fecha de completado solo se registra cuando la lección queda marcada como
+        // completada.
         progreso.setFechaCompletado(request.getCompletado() ? LocalDateTime.now() : null);
 
         progresoRepository.save(progreso);
@@ -62,7 +65,7 @@ public class ProgresoLeccionService {
 
     @Transactional(readOnly = true)
     public CursoProgresoResponse obtenerProgresoCurso(Long cursoId, Estudiante estudiante) {
-        validarInscritoActivo(cursoId, estudiante);
+        validarAccesoLecturaProgreso(cursoId, estudiante);
 
         List<Leccion> lecciones = leccionRepository.findByCursoIdOrderByOrdenAsc(cursoId);
 
@@ -87,16 +90,24 @@ public class ProgresoLeccionService {
     }
 
     private void validarInscritoActivo(Long cursoId, Estudiante estudiante) {
-        cursoRepository.findById(cursoId)
+        Curso curso = cursoRepository.findById(cursoId)
                 .orElseThrow(() -> new IllegalArgumentException("No existe un curso con id " + cursoId));
 
-        boolean inscritoActivo = inscripcionRepository
-                .findByEstudianteIdAndCursoId(estudiante.getId(), cursoId)
-                .filter(i -> i.getEstado() == EstadoInscripcion.ACTIVA)
-                .isPresent();
-
-        if (!inscritoActivo) {
+        // Solo los estudiantes con una inscripción activa pueden registrar o consultar
+        // su progreso.
+        if (!cursoAccesoService.estaInscritoActivo(curso, estudiante)) {
             throw new AccessDeniedException("No estas inscrito activamente en este curso");
+        }
+    }
+
+    private void validarAccesoLecturaProgreso(Long cursoId, Estudiante estudiante) {
+        Curso curso = cursoRepository.findById(cursoId)
+                .orElseThrow(() -> new IllegalArgumentException("No existe un curso con id " + cursoId));
+
+        // Un estudiante que ya termino el curso (COMPLETADA) aun puede consultar su
+        // avance; solo se excluye CANCELADA.
+        if (!cursoAccesoService.tieneAccesoDeLectura(curso, estudiante)) {
+            throw new AccessDeniedException("No tienes acceso al progreso de este curso");
         }
     }
 

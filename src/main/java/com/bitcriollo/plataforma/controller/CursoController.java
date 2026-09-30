@@ -44,6 +44,7 @@ public class CursoController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('DOCENTE') or hasRole('COORDINADORACADEMICO')")
     public ResponseEntity<CursoResponse> actualizarCurso(@PathVariable Long id,
                                                            @Valid @RequestBody CursoRequest request,
                                                            @AuthenticationPrincipal UsuarioDetailsImpl userDetails) {
@@ -52,6 +53,7 @@ public class CursoController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('DOCENTE') or hasRole('COORDINADORACADEMICO')")
     public ResponseEntity<Void> archivarCurso(@PathVariable Long id,
                                                @AuthenticationPrincipal UsuarioDetailsImpl userDetails) {
         cursoService.archivarCurso(id, userDetails.getUsuario());

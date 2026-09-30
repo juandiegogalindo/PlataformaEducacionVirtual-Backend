@@ -28,9 +28,12 @@ public class InscripcionService {
 
     @Transactional
     public InscripcionResponse inscribirse(InscripcionRequest request, Estudiante estudiante) {
-        Curso curso = cursoRepository.findById(request.getCursoId())
+        // Se bloquea la fila del curso hasta el fin de la transaccion: dos inscripciones concurrentes
+        // sobre el mismo curso quedan serializadas y no pueden superar juntas el cupo maximo.
+        Curso curso = cursoRepository.findByIdParaInscripcion(request.getCursoId())
                 .orElseThrow(() -> new IllegalArgumentException("No existe un curso con id " + request.getCursoId()));
 
+        // Solo los cursos activos pueden recibir nuevas inscripciones.
         if (curso.getEstado() != EstadoCurso.ACTIVO) {
             throw new IllegalStateException("Este curso no esta disponible para inscripciones");
         }
@@ -44,9 +47,9 @@ public class InscripcionService {
         }
 
         if (curso.getCupoMaximo() != null) {
-            long inscritosActivos = curso.getInscripciones().stream()
-                    .filter(i -> i.getEstado() == EstadoInscripcion.ACTIVA)
-                    .count();
+            // Se cuenta con una consulta dedicada en vez de cargar en memoria todo el historico de inscritos.
+            long inscritosActivos = inscripcionRepository.countByCursoIdAndEstado(curso.getId(),
+                    EstadoInscripcion.ACTIVA);
             if (inscritosActivos >= curso.getCupoMaximo()) {
                 throw new IllegalStateException("Este curso ya alcanzo su cupo maximo");
             }
@@ -70,6 +73,7 @@ public class InscripcionService {
             throw new AccessDeniedException("No puedes cancelar la inscripcion de otro estudiante");
         }
 
+        // Una inscripción que ya no está activa no puede cancelarse nuevamente.
         if (inscripcion.getEstado() != EstadoInscripcion.ACTIVA) {
             throw new IllegalStateException("Esta inscripcion ya no esta activa");
         }

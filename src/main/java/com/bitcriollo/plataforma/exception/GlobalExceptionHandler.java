@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
@@ -12,20 +13,32 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(CredencialesInvalidasException.class)
+    public ResponseEntity<ErrorResponse> manejarCredencialesInvalidas(CredencialesInvalidasException ex) {
+        // Las credenciales de autenticacion invalidas se informan como HTTP 401.
+        ErrorResponse error = new ErrorResponse(LocalDateTime.now(), HttpStatus.UNAUTHORIZED.value(), ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> manejarIllegalArgument(IllegalArgumentException ex) {
+        // Los argumentos inválidos se informan como errores de solicitud HTTP 400.
         ErrorResponse error = new ErrorResponse(LocalDateTime.now(), HttpStatus.BAD_REQUEST.value(), ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ErrorResponse> manejarIllegalState(IllegalStateException ex) {
+        // Los conflictos derivados del estado actual del recurso se informan como HTTP
+        // 409.
         ErrorResponse error = new ErrorResponse(LocalDateTime.now(), HttpStatus.CONFLICT.value(), ex.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> manejarValidacion(MethodArgumentNotValidException ex) {
+        // Se agrupan los errores de validación para devolver un mensaje descriptivo al
+        // cliente.
         String mensaje = ex.getBindingResult().getFieldErrors().stream()
                 .map(fieldError -> fieldError.getField() + ": " + fieldError.getDefaultMessage())
                 .collect(Collectors.joining(" | "));
@@ -34,8 +47,32 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
-    public ResponseEntity<ErrorResponse> manejarAccesoDenegado(org.springframework.security.access.AccessDeniedException ex) {
+    public ResponseEntity<ErrorResponse> manejarAccesoDenegado(
+            org.springframework.security.access.AccessDeniedException ex) {
+        // Los accesos rechazados por permisos insuficientes se informan como HTTP 403.
         ErrorResponse error = new ErrorResponse(LocalDateTime.now(), HttpStatus.FORBIDDEN.value(), ex.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> manejarIntegridadDatos(DataIntegrityViolationException ex) {
+        // Las violaciones de restricciones de la base de datos (unicidad, llaves
+        // foraneas, campos obligatorios)
+        // se informan como HTTP 409 con un mensaje generico, sin exponer detalles
+        // internos de la base de datos.
+        ErrorResponse error = new ErrorResponse(LocalDateTime.now(), HttpStatus.CONFLICT.value(),
+                "Ya existe un registro con esos datos, o se violo una restriccion de la base de datos");
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> manejarCuerpoInvalido(
+            org.springframework.http.converter.HttpMessageNotReadableException ex) {
+        // El JSON no se pudo convertir: JSON mal formado, o un campo con formato
+        // invalido
+        // (por ejemplo una fecha que no cumple ISO-8601, como mes 13 u hora 25).
+        ErrorResponse error = new ErrorResponse(LocalDateTime.now(), HttpStatus.BAD_REQUEST.value(),
+                "El cuerpo de la solicitud tiene un formato invalido: revisa que los campos (fechas, numeros, etc.) cumplan el formato esperado");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 }

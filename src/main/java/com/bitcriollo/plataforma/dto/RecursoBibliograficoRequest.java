@@ -1,6 +1,8 @@
 package com.bitcriollo.plataforma.dto;
 
+import com.bitcriollo.plataforma.model.enums.TipoRecurso;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -15,8 +17,8 @@ public class RecursoBibliograficoRequest {
 
     private Integer anioPublicacion;
 
-    @NotBlank
-    private String tipoRecurso;
+    @NotNull
+    private TipoRecurso tipoRecurso;
 
     @NotBlank
     private String enlace;

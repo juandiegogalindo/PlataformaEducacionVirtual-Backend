@@ -1,5 +1,6 @@
 package com.bitcriollo.plataforma.config;
 
+import com.bitcriollo.plataforma.security.AuthEntryPointJwt;
 import com.bitcriollo.plataforma.security.JwtAuthFilter;
 import com.bitcriollo.plataforma.security.UsuarioDetailsServiceImpl;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,13 +30,16 @@ public class SecurityConfig {
 
     private final UsuarioDetailsServiceImpl usuarioDetailsService;
     private final JwtAuthFilter jwtAuthFilter;
+    private final AuthEntryPointJwt authEntryPointJwt;
 
     @Value("${app.cors.allowed-origins}")
     private String allowedOrigins;
 
-    public SecurityConfig(UsuarioDetailsServiceImpl usuarioDetailsService, JwtAuthFilter jwtAuthFilter) {
+    public SecurityConfig(UsuarioDetailsServiceImpl usuarioDetailsService, JwtAuthFilter jwtAuthFilter,
+            AuthEntryPointJwt authEntryPointJwt) {
         this.usuarioDetailsService = usuarioDetailsService;
         this.jwtAuthFilter = jwtAuthFilter;
+        this.authEntryPointJwt = authEntryPointJwt;
     }
 
     @Bean
@@ -59,6 +63,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
+
+        // Las solicitudes del frontend se permiten únicamente desde los orígenes configurados.
         config.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
@@ -73,13 +79,22 @@ public class SecurityConfig {
         http
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
+                // La API utiliza JWT, por lo que no mantiene sesiones HTTP en el servidor.
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // Sin token o con un token invalido se responde 401; los fallos de autorizacion siguen en 403.
+                .exceptionHandling(handling -> handling.authenticationEntryPoint(authEntryPointJwt))
                 .authorizeHttpRequests(auth -> auth
+                        // Salud y autenticación son públicos para permitir verificar el servicio e iniciar sesión.
                         .requestMatchers("/api/health", "/api/auth/**").permitAll()
+                        // El reenvio interno de Spring Boot a /error (por ejemplo ante un JSON invalido) vuelve a
+                        // pasar por este filtro; sin este permiso, JwtAuthFilter no corre en ese reenvio (no
+                        // filtra despachos de tipo ERROR) y el error original se reemplaza por un 401.
+                        .requestMatchers("/error").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/cursos", "/api/cursos/*")
                         .permitAll()
                         .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider())
+                // El filtro JWT valida el token antes de que Spring procese la autenticación estándar.
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

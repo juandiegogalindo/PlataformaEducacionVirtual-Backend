@@ -3,9 +3,7 @@ package com.bitcriollo.plataforma.service;
 import com.bitcriollo.plataforma.dto.LeccionRequest;
 import com.bitcriollo.plataforma.dto.LeccionResponse;
 import com.bitcriollo.plataforma.model.*;
-import com.bitcriollo.plataforma.model.enums.EstadoInscripcion;
 import com.bitcriollo.plataforma.repository.CursoRepository;
-import com.bitcriollo.plataforma.repository.InscripcionRepository;
 import com.bitcriollo.plataforma.repository.LeccionRepository;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -18,14 +16,14 @@ public class LeccionService {
 
     private final LeccionRepository leccionRepository;
     private final CursoRepository cursoRepository;
-    private final InscripcionRepository inscripcionRepository;
+    private final CursoAccesoService cursoAccesoService;
 
     public LeccionService(LeccionRepository leccionRepository,
             CursoRepository cursoRepository,
-            InscripcionRepository inscripcionRepository) {
+            CursoAccesoService cursoAccesoService) {
         this.leccionRepository = leccionRepository;
         this.cursoRepository = cursoRepository;
-        this.inscripcionRepository = inscripcionRepository;
+        this.cursoAccesoService = cursoAccesoService;
     }
 
     @Transactional
@@ -88,6 +86,8 @@ public class LeccionService {
     private Leccion buscarLeccionDelCursoOLanzar(Long cursoId, Long leccionId) {
         Leccion leccion = leccionRepository.findById(leccionId)
                 .orElseThrow(() -> new IllegalArgumentException("No existe una leccion con id " + leccionId));
+        // Se verifica que la lección pertenezca al curso solicitado antes de permitir
+        // su gestión.
         if (!leccion.getCurso().getId().equals(cursoId)) {
             throw new IllegalArgumentException("Esa leccion no pertenece a este curso");
         }
@@ -95,26 +95,22 @@ public class LeccionService {
     }
 
     private void validarEsDocenteDueno(Curso curso, Usuario solicitante) {
-        boolean esDocenteDelCurso = curso.getDocente().getId().equals(solicitante.getId());
-        if (!esDocenteDelCurso) {
-            throw new AccessDeniedException("Solo el docente que dicta este curso puede gestionar sus lecciones");
+        // El docente asignado al curso y cualquier coordinador academico pueden
+        // gestionar sus lecciones.
+        if (!cursoAccesoService.esDocenteDelCurso(curso, solicitante)
+                && !cursoAccesoService.esCoordinador(solicitante)) {
+            throw new AccessDeniedException(
+                    "Solo el docente que dicta este curso o un coordinador pueden gestionar sus lecciones");
         }
     }
 
     private void validarAccesoLectura(Curso curso, Usuario solicitante) {
-        boolean esDocenteDelCurso = curso.getDocente().getId().equals(solicitante.getId());
-        if (esDocenteDelCurso) {
+        // El contenido esta disponible para el docente, los coordinadores y los
+        // estudiantes con inscripcion vigente.
+        if (cursoAccesoService.esDocenteDelCurso(curso, solicitante)
+                || cursoAccesoService.esCoordinador(solicitante)
+                || cursoAccesoService.tieneAccesoDeLectura(curso, solicitante)) {
             return;
-        }
-
-        if (solicitante instanceof Estudiante) {
-            boolean inscritoActivo = inscripcionRepository
-                    .findByEstudianteIdAndCursoId(solicitante.getId(), curso.getId())
-                    .filter(i -> i.getEstado() == EstadoInscripcion.ACTIVA)
-                    .isPresent();
-            if (inscritoActivo) {
-                return;
-            }
         }
 
         throw new AccessDeniedException("No tienes acceso al contenido de este curso");

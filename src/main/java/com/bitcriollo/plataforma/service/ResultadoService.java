@@ -11,11 +11,9 @@ import com.bitcriollo.plataforma.model.Resultado;
 import com.bitcriollo.plataforma.model.Tarea;
 import com.bitcriollo.plataforma.model.Usuario;
 import com.bitcriollo.plataforma.model.enums.EstadoEvaluacion;
-import com.bitcriollo.plataforma.model.enums.EstadoInscripcion;
 import com.bitcriollo.plataforma.model.enums.EstadoResultado;
 import com.bitcriollo.plataforma.repository.CursoRepository;
 import com.bitcriollo.plataforma.repository.EvaluacionRepository;
-import com.bitcriollo.plataforma.repository.InscripcionRepository;
 import com.bitcriollo.plataforma.repository.ResultadoRepository;
 import org.hibernate.Hibernate;
 import org.springframework.security.access.AccessDeniedException;
@@ -34,17 +32,17 @@ public class ResultadoService {
 
     private final ResultadoRepository resultadoRepository;
     private final EvaluacionRepository evaluacionRepository;
-    private final InscripcionRepository inscripcionRepository;
     private final CursoRepository cursoRepository;
+    private final CursoAccesoService cursoAccesoService;
 
     public ResultadoService(ResultadoRepository resultadoRepository,
             EvaluacionRepository evaluacionRepository,
-            InscripcionRepository inscripcionRepository,
-            CursoRepository cursoRepository) {
+            CursoRepository cursoRepository,
+            CursoAccesoService cursoAccesoService) {
         this.resultadoRepository = resultadoRepository;
         this.evaluacionRepository = evaluacionRepository;
-        this.inscripcionRepository = inscripcionRepository;
         this.cursoRepository = cursoRepository;
+        this.cursoAccesoService = cursoAccesoService;
     }
 
     @Transactional
@@ -56,14 +54,12 @@ public class ResultadoService {
         Evaluacion evaluacion = (Evaluacion) Hibernate.unproxy(evaluacionRepository.findById(evaluacionId)
                 .orElseThrow(() -> new IllegalArgumentException("No existe una evaluacion con id " + evaluacionId)));
 
-        boolean inscripcionActiva = inscripcionRepository
-                .findByEstudianteIdAndCursoId(estudiante.getId(), evaluacion.getCurso().getId())
-                .filter(i -> i.getEstado() == EstadoInscripcion.ACTIVA)
-                .isPresent();
-        if (!inscripcionActiva) {
+        // Solo los estudiantes con inscripción activa pueden registrar resultados.
+        if (!cursoAccesoService.estaInscritoActivo(evaluacion.getCurso(), estudiante)) {
             throw new AccessDeniedException("Debes tener una inscripcion activa en el curso");
         }
 
+        // Las evaluaciones en borrador no se muestran al estudiante para evitar revelar contenido no publicado.
         if (evaluacion.getEstado() == EstadoEvaluacion.BORRADOR) {
             throw new IllegalArgumentException("No existe una evaluacion con id " + evaluacionId);
         }
@@ -76,6 +72,7 @@ public class ResultadoService {
         LocalDateTime ahora = LocalDateTime.now();
 
         if (evaluacion instanceof Examen examen) {
+            // El estudiante debe esperar hasta la fecha de aplicación y respetar el límite de intentos.
             if (ahora.isBefore(examen.getFechaAplicacion())) {
                 throw new IllegalStateException("El examen aun no esta disponible");
             }
@@ -83,12 +80,14 @@ public class ResultadoService {
                 throw new IllegalStateException("Ya usaste todos los intentos permitidos para este examen");
             }
         } else if (evaluacion instanceof Tarea tarea) {
+            // Una tarea solo admite una entrega por estudiante.
             if (!previos.isEmpty()) {
                 throw new IllegalStateException("Ya registraste la entrega de esta tarea");
             }
             if (!StringUtils.hasText(request.getContenido())) {
                 throw new IllegalArgumentException("La entrega de una tarea requiere contenido");
             }
+            // Las entregas posteriores a la fecha límite solo se permiten cuando la tarea las admite.
             if (ahora.isAfter(tarea.getFechaLimite()) && !tarea.isPermiteEntregaTardia()) {
                 throw new IllegalStateException("La fecha limite de entrega ya paso");
             }
@@ -110,12 +109,14 @@ public class ResultadoService {
                 .orElseThrow(() -> new IllegalArgumentException("No existe un resultado con id " + resultadoId));
         validarDocenteDelCurso(resultado.getEvaluacion().getCurso(), docente);
 
+        // La calificación utiliza una escala máxima de 5.0.
         if (request.getCalificacion() > NOTA_MAXIMA) {
             throw new IllegalArgumentException("La calificacion no puede superar " + NOTA_MAXIMA);
         }
 
         double nota = request.getCalificacion();
         Evaluacion evaluacion = (Evaluacion) Hibernate.unproxy(resultado.getEvaluacion());
+        // La penalización por entrega tardía se aplica únicamente cuando está configurada para la tarea.
         if (evaluacion instanceof Tarea tarea && esEntregaTardia(resultado, tarea)
                 && tarea.getPenalizacionTardanzaPorcentaje() != null) {
             nota = nota * (1 - tarea.getPenalizacionTardanzaPorcentaje() / 100.0);
@@ -148,7 +149,8 @@ public class ResultadoService {
     }
 
     private void validarDocenteDelCurso(Curso curso, Usuario usuario) {
-        if (!curso.getDocente().getId().equals(usuario.getId())) {
+        // Solo el docente asignado al curso puede gestionar sus calificaciones.
+        if (!cursoAccesoService.esDocenteDelCurso(curso, usuario)) {
             throw new AccessDeniedException("Solo el docente del curso puede gestionar sus calificaciones");
         }
     }

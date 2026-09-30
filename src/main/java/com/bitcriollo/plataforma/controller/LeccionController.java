@@ -24,7 +24,7 @@ public class LeccionController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('DOCENTE')")
+    @PreAuthorize("hasRole('DOCENTE') or hasRole('COORDINADORACADEMICO')")
     public ResponseEntity<LeccionResponse> crearLeccion(@PathVariable Long cursoId,
             @Valid @RequestBody LeccionRequest request,
             @AuthenticationPrincipal UsuarioDetailsImpl userDetails) {
@@ -39,7 +39,7 @@ public class LeccionController {
     }
 
     @PutMapping("/{leccionId}")
-    @PreAuthorize("hasRole('DOCENTE')")
+    @PreAuthorize("hasRole('DOCENTE') or hasRole('COORDINADORACADEMICO')")
     public ResponseEntity<LeccionResponse> actualizarLeccion(@PathVariable Long cursoId,
             @PathVariable Long leccionId,
             @Valid @RequestBody LeccionRequest request,
@@ -50,7 +50,7 @@ public class LeccionController {
     }
 
     @DeleteMapping("/{leccionId}")
-    @PreAuthorize("hasRole('DOCENTE')")
+    @PreAuthorize("hasRole('DOCENTE') or hasRole('COORDINADORACADEMICO')")
     public ResponseEntity<Void> eliminarLeccion(@PathVariable Long cursoId,
             @PathVariable Long leccionId,
             @AuthenticationPrincipal UsuarioDetailsImpl userDetails) {

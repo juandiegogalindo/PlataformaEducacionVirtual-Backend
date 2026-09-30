@@ -3,7 +3,6 @@ package com.bitcriollo.plataforma.service;
 import com.bitcriollo.plataforma.dto.MensajeForoRequest;
 import com.bitcriollo.plataforma.dto.MensajeForoResponse;
 import com.bitcriollo.plataforma.model.*;
-import com.bitcriollo.plataforma.model.enums.EstadoInscripcion;
 import com.bitcriollo.plataforma.repository.*;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -17,22 +16,22 @@ public class MensajeForoService {
     private final MensajeForoRepository mensajeRepository;
     private final ForoRepository foroRepository;
     private final CursoRepository cursoRepository;
-    private final InscripcionRepository inscripcionRepository;
+    private final CursoAccesoService cursoAccesoService;
 
     public MensajeForoService(MensajeForoRepository mensajeRepository,
             ForoRepository foroRepository,
             CursoRepository cursoRepository,
-            InscripcionRepository inscripcionRepository) {
+            CursoAccesoService cursoAccesoService) {
         this.mensajeRepository = mensajeRepository;
         this.foroRepository = foroRepository;
         this.cursoRepository = cursoRepository;
-        this.inscripcionRepository = inscripcionRepository;
+        this.cursoAccesoService = cursoAccesoService;
     }
 
     @Transactional
     public MensajeForoResponse publicarMensaje(Long cursoId, MensajeForoRequest request, Usuario autor) {
         Curso curso = buscarCursoOLanzar(cursoId);
-        validarAccesoAlForo(curso, autor);
+        validarParticipacionEnForo(curso, autor);
         Foro foro = foroRepository.findByCursoId(cursoId)
                 .orElseThrow(() -> new IllegalStateException("Este curso todavia no tiene foro asociado"));
 
@@ -40,6 +39,7 @@ public class MensajeForoService {
         if (request.getMensajePadreId() != null) {
             mensajePadre = mensajeRepository.findById(request.getMensajePadreId())
                     .orElseThrow(() -> new IllegalArgumentException("No existe el mensaje al que intentas responder"));
+            // Una respuesta solo puede pertenecer a un mensaje del mismo foro.
             if (!mensajePadre.getForo().getId().equals(foro.getId())) {
                 throw new IllegalArgumentException("Ese mensaje no pertenece al foro de este curso");
             }
@@ -98,6 +98,8 @@ public class MensajeForoService {
     private MensajeForo buscarMensajeDelCursoOLanzar(Curso curso, Long mensajeId) {
         MensajeForo mensaje = mensajeRepository.findById(mensajeId)
                 .orElseThrow(() -> new IllegalArgumentException("No existe un mensaje con id " + mensajeId));
+        // Se valida que el mensaje pertenezca al curso antes de permitir su
+        // modificación o eliminación.
         if (!mensaje.getForo().getCurso().getId().equals(curso.getId())) {
             throw new IllegalArgumentException("Ese mensaje no pertenece a este curso");
         }
@@ -105,19 +107,24 @@ public class MensajeForoService {
     }
 
     private void validarAccesoAlForo(Curso curso, Usuario solicitante) {
-        boolean esDocenteDelCurso = curso.getDocente().getId().equals(solicitante.getId());
-        if (esDocenteDelCurso) {
+        // Pueden consultar el foro el docente, los coordinadores y los estudiantes con
+        // inscripcion vigente.
+        if (cursoAccesoService.esDocenteDelCurso(curso, solicitante)
+                || cursoAccesoService.esCoordinador(solicitante)
+                || cursoAccesoService.tieneAccesoDeLectura(curso, solicitante)) {
             return;
         }
 
-        if (solicitante instanceof Estudiante) {
-            boolean inscritoActivo = inscripcionRepository
-                    .findByEstudianteIdAndCursoId(solicitante.getId(), curso.getId())
-                    .filter(i -> i.getEstado() == EstadoInscripcion.ACTIVA)
-                    .isPresent();
-            if (inscritoActivo) {
-                return;
-            }
+        throw new AccessDeniedException("No tienes acceso al foro de este curso");
+    }
+
+    private void validarParticipacionEnForo(Curso curso, Usuario autor) {
+        // Para publicar, el estudiante debe tener la inscripcion ACTIVA; docente y
+        // coordinadores siempre pueden.
+        if (cursoAccesoService.esDocenteDelCurso(curso, autor)
+                || cursoAccesoService.esCoordinador(autor)
+                || cursoAccesoService.estaInscritoActivo(curso, autor)) {
+            return;
         }
 
         throw new AccessDeniedException("No tienes acceso al foro de este curso");
@@ -125,9 +132,13 @@ public class MensajeForoService {
 
     private void validarAutorOModerador(Curso curso, MensajeForo mensaje, Usuario solicitante) {
         boolean esAutor = mensaje.getUsuario().getId().equals(solicitante.getId());
-        boolean esDocenteDelCurso = curso.getDocente().getId().equals(solicitante.getId());
-        if (!esAutor && !esDocenteDelCurso) {
-            throw new AccessDeniedException("Solo el autor o el docente del curso pueden modificar este mensaje");
+        // El autor, el docente responsable del curso o un coordinador (moderacion)
+        // pueden modificar o eliminar el mensaje.
+        if (!esAutor
+                && !cursoAccesoService.esDocenteDelCurso(curso, solicitante)
+                && !cursoAccesoService.esCoordinador(solicitante)) {
+            throw new AccessDeniedException(
+                    "Solo el autor, el docente del curso o un coordinador pueden modificar este mensaje");
         }
     }
 
