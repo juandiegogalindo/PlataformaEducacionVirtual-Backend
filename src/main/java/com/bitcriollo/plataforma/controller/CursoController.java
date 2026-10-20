@@ -25,9 +25,9 @@ public class CursoController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('DOCENTE') or hasRole('COORDINADORACADEMICO')")
+    @PreAuthorize("hasRole('DOCENTE') or hasRole('COORDINADORACADEMICO') or hasRole('ADMINISTRADOR')")
     public ResponseEntity<CursoResponse> crearCurso(@Valid @RequestBody CursoRequest request,
-                                                      @AuthenticationPrincipal UsuarioDetailsImpl userDetails) {
+            @AuthenticationPrincipal UsuarioDetailsImpl userDetails) {
         Usuario creador = userDetails.getUsuario();
         CursoResponse response = cursoService.crearCurso(request, creador);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -44,18 +44,18 @@ public class CursoController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('DOCENTE') or hasRole('COORDINADORACADEMICO')")
+    @PreAuthorize("hasRole('DOCENTE') or hasRole('COORDINADORACADEMICO') or hasRole('ADMINISTRADOR')")
     public ResponseEntity<CursoResponse> actualizarCurso(@PathVariable Long id,
-                                                           @Valid @RequestBody CursoRequest request,
-                                                           @AuthenticationPrincipal UsuarioDetailsImpl userDetails) {
+            @Valid @RequestBody CursoRequest request,
+            @AuthenticationPrincipal UsuarioDetailsImpl userDetails) {
         CursoResponse response = cursoService.actualizarCurso(id, request, userDetails.getUsuario());
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('DOCENTE') or hasRole('COORDINADORACADEMICO')")
+    @PreAuthorize("hasRole('DOCENTE') or hasRole('COORDINADORACADEMICO') or hasRole('ADMINISTRADOR')")
     public ResponseEntity<Void> archivarCurso(@PathVariable Long id,
-                                               @AuthenticationPrincipal UsuarioDetailsImpl userDetails) {
+            @AuthenticationPrincipal UsuarioDetailsImpl userDetails) {
         cursoService.archivarCurso(id, userDetails.getUsuario());
         return ResponseEntity.noContent().build();
     }

@@ -2,6 +2,7 @@ package com.bitcriollo.plataforma.service;
 
 import com.bitcriollo.plataforma.dto.CursoRequest;
 import com.bitcriollo.plataforma.dto.CursoResponse;
+import com.bitcriollo.plataforma.model.Administrador;
 import com.bitcriollo.plataforma.model.CoordinadorAcademico;
 import com.bitcriollo.plataforma.model.Curso;
 import com.bitcriollo.plataforma.model.Docente;
@@ -40,16 +41,19 @@ public class CursoService {
 
         if (creador instanceof Docente) {
             docente = (Docente) creador;
-        } else if (creador instanceof CoordinadorAcademico) {
-            // El coordinador debe indicar explícitamente el docente responsable del curso.
+        } else if (puedeAdministrarCursos(creador)) {
+            // El coordinador y el administrador deben indicar explícitamente el docente
+            // responsable del curso.
             if (request.getDocenteId() == null) {
                 throw new IllegalArgumentException("Debes indicar el docente que dictara el curso");
             }
             docente = docenteRepository.findById(request.getDocenteId())
                     .orElseThrow(() -> new IllegalArgumentException("No existe un docente con ese id"));
         } else {
-            // Solo docentes y coordinadores tienen permisos para crear cursos.
-            throw new AccessDeniedException("Solo un Docente o Coordinador Academico puede crear cursos");
+            // Solo docentes, coordinadores y administradores tienen permisos para crear
+            // cursos.
+            throw new AccessDeniedException(
+                    "Solo un Docente, Coordinador Academico o Administrador puede crear cursos");
         }
 
         validarSinCruceDeHorario(docente, request.getFechaInicio(), request.getFechaFin(), null);
@@ -103,6 +107,12 @@ public class CursoService {
         // docente.
         Docente docente = curso.getDocente();
         if (request.getDocenteId() != null && !request.getDocenteId().equals(docente.getId())) {
+            // Reasignar el docente de un curso es una decision administrativa, no del
+            // docente.
+            if (!puedeAdministrarCursos(solicitante)) {
+                throw new AccessDeniedException(
+                        "Solo un coordinador o un administrador puede reasignar el docente de un curso");
+            }
             docente = docenteRepository.findById(request.getDocenteId())
                     .orElseThrow(() -> new IllegalArgumentException("No existe un docente con ese id"));
         }
@@ -145,15 +155,17 @@ public class CursoService {
     }
 
     private void validarPermisoSobreCurso(Curso curso, Usuario solicitante) {
-        // El docente responsable, el creador o un coordinador pueden modificar el
-        // curso.
-        boolean esDocenteDelCurso = cursoAccesoService.esDocenteDelCurso(curso, solicitante);
-        boolean esCreador = curso.getCreadoPor().getId().equals(solicitante.getId());
-        boolean esCoordinador = solicitante instanceof CoordinadorAcademico;
-
-        if (!esDocenteDelCurso && !esCreador && !esCoordinador) {
+        // Pueden modificar el curso su docente responsable, los coordinadores y los
+        // administradores.
+        // El creador original ya no conserva permisos si el curso fue reasignado a otro
+        // docente.
+        if (!cursoAccesoService.esDocenteDelCurso(curso, solicitante) && !puedeAdministrarCursos(solicitante)) {
             throw new AccessDeniedException("No tienes permiso para modificar este curso");
         }
+    }
+
+    private boolean puedeAdministrarCursos(Usuario usuario) {
+        return usuario instanceof CoordinadorAcademico || usuario instanceof Administrador;
     }
 
     private CursoResponse mapearAResponse(Curso curso) {
