@@ -1,9 +1,11 @@
 package com.bitcriollo.plataforma.controller;
 
 import com.bitcriollo.plataforma.dto.CursoResponse;
+import com.bitcriollo.plataforma.dto.DocenteResumenResponse;
 import com.bitcriollo.plataforma.model.enums.EstadoCurso;
 import com.bitcriollo.plataforma.security.UsuarioDetailsImpl;
 import com.bitcriollo.plataforma.service.CursoService;
+import com.bitcriollo.plataforma.service.DocenteService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,9 +21,17 @@ import java.util.List;
 public class DocenteController {
 
     private final CursoService cursoService;
+    private final DocenteService docenteService;
 
-    public DocenteController(CursoService cursoService) {
+    public DocenteController(CursoService cursoService, DocenteService docenteService) {
         this.cursoService = cursoService;
+        this.docenteService = docenteService;
+    }
+
+    @GetMapping
+    @PreAuthorize("hasRole('COORDINADORACADEMICO') or hasRole('ADMINISTRADOR')")
+    public ResponseEntity<List<DocenteResumenResponse>> listarDocentesActivos() {
+        return ResponseEntity.ok(docenteService.listarDocentesActivos());
     }
 
     @GetMapping("/mis-cursos")

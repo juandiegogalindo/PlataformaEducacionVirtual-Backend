@@ -14,6 +14,7 @@ public class CursoResponse {
     private String nombre;
     private String descripcion;
     private EstadoCurso estado;
+    private Long docenteId;
     private String docenteNombre;
     private String docenteCorreo;
     private String creadoPorNombre;

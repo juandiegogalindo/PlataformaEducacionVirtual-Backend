@@ -47,8 +47,7 @@ public class CursoService {
             if (request.getDocenteId() == null) {
                 throw new IllegalArgumentException("Debes indicar el docente que dictara el curso");
             }
-            docente = docenteRepository.findById(request.getDocenteId())
-                    .orElseThrow(() -> new IllegalArgumentException("No existe un docente con ese id"));
+            docente = buscarDocenteActivoOLanzar(request.getDocenteId());
         } else {
             // Solo docentes, coordinadores y administradores tienen permisos para crear
             // cursos.
@@ -130,8 +129,7 @@ public class CursoService {
                 throw new AccessDeniedException(
                         "Solo un coordinador o un administrador puede reasignar el docente de un curso");
             }
-            docente = docenteRepository.findById(request.getDocenteId())
-                    .orElseThrow(() -> new IllegalArgumentException("No existe un docente con ese id"));
+            docente = buscarDocenteActivoOLanzar(request.getDocenteId());
         }
 
         validarSinCruceDeHorario(docente, request.getFechaInicio(), request.getFechaFin(), curso.getId());
@@ -186,6 +184,15 @@ public class CursoService {
                 .orElseThrow(() -> new IllegalArgumentException("No existe un curso con id " + id));
     }
 
+    private Docente buscarDocenteActivoOLanzar(Long docenteId) {
+        Docente docente = docenteRepository.findById(docenteId)
+                .orElseThrow(() -> new IllegalArgumentException("No existe un docente con ese id"));
+        if (!docente.isActivo()) {
+            throw new IllegalArgumentException("El docente indicado esta desactivado");
+        }
+        return docente;
+    }
+
     private void validarSinCruceDeHorario(Docente docente, LocalDate fechaInicio, LocalDate fechaFin,
             Long cursoIdExcluir) {
         long cruces = cursoRepository.countCursosActivosConCruce(docente.getId(), cursoIdExcluir, fechaInicio,
@@ -216,6 +223,7 @@ public class CursoService {
                 curso.getNombre(),
                 curso.getDescripcion(),
                 curso.getEstado(),
+                curso.getDocente().getId(),
                 curso.getDocente().getNombre() + " " + curso.getDocente().getApellido(),
                 curso.getDocente().getCorreo(),
                 curso.getCreadoPor().getNombre() + " " + curso.getCreadoPor().getApellido(),
