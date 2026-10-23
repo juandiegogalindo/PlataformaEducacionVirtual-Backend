@@ -59,4 +59,11 @@ public class CursoController {
         cursoService.archivarCurso(id, userDetails.getUsuario());
         return ResponseEntity.noContent().build();
     }
+
+    @PatchMapping("/{id}/activar")
+    @PreAuthorize("hasRole('DOCENTE') or hasRole('COORDINADORACADEMICO') or hasRole('ADMINISTRADOR')")
+    public ResponseEntity<CursoResponse> activarCurso(@PathVariable Long id,
+                                                        @AuthenticationPrincipal UsuarioDetailsImpl userDetails) {
+        return ResponseEntity.ok(cursoService.activarCurso(id, userDetails.getUsuario()));
+    }
 }

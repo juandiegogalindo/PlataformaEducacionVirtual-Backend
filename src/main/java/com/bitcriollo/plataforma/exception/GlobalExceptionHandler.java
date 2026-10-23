@@ -75,4 +75,12 @@ public class GlobalExceptionHandler {
                 "El cuerpo de la solicitud tiene un formato invalido: revisa que los campos (fechas, numeros, etc.) cumplan el formato esperado");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
+
+    @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> manejarParametroInvalido(
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException ex) {
+        ErrorResponse error = new ErrorResponse(LocalDateTime.now(), HttpStatus.BAD_REQUEST.value(),
+                "El valor del parametro '" + ex.getName() + "' no es valido");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
 }

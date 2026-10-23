@@ -86,11 +86,28 @@ public class CursoService {
         return mapearAResponse(curso);
     }
 
-    @Transactional(readOnly = true)
+        @Transactional(readOnly = true)
     public List<CursoResponse> listarCursos() {
-        return cursoRepository.findAll().stream()
+        // El catalogo publico solo muestra los cursos activos.
+        return cursoRepository.findByEstado(EstadoCurso.ACTIVO).stream()
                 .map(this::mapearAResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CursoResponse> listarCursosDeDocente(Long docenteId, EstadoCurso estado) {
+        List<Curso> cursos = (estado == null)
+                ? cursoRepository.findByDocenteId(docenteId)
+                : cursoRepository.findByDocenteIdAndEstado(docenteId, estado);
+        return cursos.stream().map(this::mapearAResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CursoResponse> listarCursosParaGestion(EstadoCurso estado) {
+        List<Curso> cursos = (estado == null)
+                ? cursoRepository.findAll()
+                : cursoRepository.findByEstado(estado);
+        return cursos.stream().map(this::mapearAResponse).toList();
     }
 
     @Transactional(readOnly = true)
@@ -137,6 +154,31 @@ public class CursoService {
         validarPermisoSobreCurso(curso, solicitante);
         curso.setEstado(EstadoCurso.ARCHIVADO);
         cursoRepository.save(curso);
+    }
+
+        @Transactional
+    public CursoResponse activarCurso(Long id, Usuario solicitante) {
+        Curso curso = buscarCursoOLanzar(id);
+        validarPermisoSobreCurso(curso, solicitante);
+
+        if (curso.getEstado() == EstadoCurso.ACTIVO) {
+            throw new IllegalStateException("El curso ya esta activo");
+        }
+
+        // Los cursos archivados no cuentan para el cruce de fechas ni para los duplicados,
+        // asi que al reactivar hay que volver a validar ambas reglas.
+        validarSinCruceDeHorario(curso.getDocente(), curso.getFechaInicio(), curso.getFechaFin(), curso.getId());
+
+        if (cursoRepository.existsByNombreAndDocenteIdAndFechaInicioAndFechaFinAndEstado(
+                curso.getNombre(), curso.getDocente().getId(), curso.getFechaInicio(), curso.getFechaFin(),
+                EstadoCurso.ACTIVO)) {
+            throw new IllegalStateException(
+                    "Ya existe un curso activo identico (mismo nombre, docente y fechas)");
+        }
+
+        curso.setEstado(EstadoCurso.ACTIVO);
+        cursoRepository.save(curso);
+        return mapearAResponse(curso);
     }
 
     private Curso buscarCursoOLanzar(Long id) {

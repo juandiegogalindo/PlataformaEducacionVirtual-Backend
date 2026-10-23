@@ -16,6 +16,7 @@ public interface CursoRepository extends JpaRepository<Curso, Long> {
     List<Curso> findByDocenteId(Long docenteId);
 
     List<Curso> findByEstado(EstadoCurso estado);
+    List<Curso> findByDocenteIdAndEstado(Long docenteId, EstadoCurso estado);
 
     // Bloquea la fila del curso hasta el fin de la transaccion para serializar las
     // inscripciones
