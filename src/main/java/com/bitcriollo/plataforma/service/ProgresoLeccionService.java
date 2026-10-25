@@ -63,14 +63,17 @@ public class ProgresoLeccionService {
         return mapearAResponse(leccion, progreso);
     }
 
-    @Transactional(readOnly = true)
+        @Transactional(readOnly = true)
     public CursoProgresoResponse obtenerProgresoCurso(Long cursoId, Estudiante estudiante) {
         validarAccesoLecturaProgreso(cursoId, estudiante);
-
+        return construirProgreso(cursoId, estudiante.getId());
+    }
+    
+    CursoProgresoResponse construirProgreso(Long cursoId, Long estudianteId) {
         List<Leccion> lecciones = leccionRepository.findByCursoIdOrderByOrdenAsc(cursoId);
 
         Map<Long, ProgresoLeccion> progresosPorLeccion = progresoRepository
-                .findByEstudianteId(estudiante.getId()).stream()
+                .findByEstudianteId(estudianteId).stream()
                 .collect(Collectors.toMap(p -> p.getLeccion().getId(), p -> p));
 
         List<ProgresoLeccionResponse> detalle = lecciones.stream()
