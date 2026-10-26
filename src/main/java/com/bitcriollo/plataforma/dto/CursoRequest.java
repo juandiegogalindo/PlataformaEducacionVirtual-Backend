@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
+import jakarta.validation.Valid;
+import java.util.List;
 
 import java.time.LocalDate;
 
@@ -29,4 +31,8 @@ public class CursoRequest {
     private String imagenPortadaUrl;
 
     private Long docenteId;
+
+        // Sesiones semanales. Obligatorio al crear; al editar, si se omite se conservan las actuales.
+    @Valid
+    private List<HorarioRequest> horarios;
 }

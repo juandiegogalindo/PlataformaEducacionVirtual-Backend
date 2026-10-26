@@ -25,15 +25,13 @@ public interface CursoRepository extends JpaRepository<Curso, Long> {
     @Query("select c from Curso c where c.id = :id")
     Optional<Curso> findByIdParaInscripcion(Long id);
 
-    // Cuenta los cursos ACTIVOS de un docente cuyas fechas se solapan con el rango
-    // indicado.
-    // cursoIdExcluir permite ignorar el propio curso al validar una actualizacion
-    // (puede ser null al crear).
-    @Query("select count(c) from Curso c where c.docente.id = :docenteId "
+        // Cursos ACTIVOS de un docente cuyas fechas se solapan con el rango indicado, con sus horarios cargados.
+    // cursoIdExcluir permite ignorar el propio curso al validar una actualizacion (puede ser null al crear).
+    @Query("select distinct c from Curso c left join fetch c.horarios where c.docente.id = :docenteId "
             + "and c.estado = com.bitcriollo.plataforma.model.enums.EstadoCurso.ACTIVO "
             + "and (:cursoIdExcluir is null or c.id <> :cursoIdExcluir) "
             + "and c.fechaInicio <= :fechaFin and c.fechaFin >= :fechaInicio")
-    long countCursosActivosConCruce(@Param("docenteId") Long docenteId,
+    List<Curso> findCursosActivosConFechasCruzadas(@Param("docenteId") Long docenteId,
             @Param("cursoIdExcluir") Long cursoIdExcluir,
             @Param("fechaInicio") LocalDate fechaInicio,
             @Param("fechaFin") LocalDate fechaFin);
