@@ -29,6 +29,7 @@ DROP TABLE IF EXISTS coordinadores_academicos;
 DROP TABLE IF EXISTS estudiantes;
 DROP TABLE IF EXISTS docentes;
 DROP TABLE IF EXISTS administradores;
+DROP TABLE IF EXISTS fotos_perfil;
 DROP TABLE IF EXISTS usuarios;
 
 COMMIT;
