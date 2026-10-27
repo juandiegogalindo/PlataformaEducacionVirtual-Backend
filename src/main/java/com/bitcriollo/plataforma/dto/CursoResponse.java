@@ -6,6 +6,7 @@ import lombok.Getter;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @AllArgsConstructor
@@ -14,6 +15,7 @@ public class CursoResponse {
     private String nombre;
     private String descripcion;
     private EstadoCurso estado;
+    private Long docenteId;
     private String docenteNombre;
     private String docenteCorreo;
     private String creadoPorNombre;
@@ -22,4 +24,5 @@ public class CursoResponse {
     private Integer cupoMaximo;
     private String imagenPortadaUrl;
     private LocalDateTime createdAt;
+    private List<HorarioResponse> horarios;
 }

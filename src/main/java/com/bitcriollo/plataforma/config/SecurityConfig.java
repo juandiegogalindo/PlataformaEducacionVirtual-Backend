@@ -90,7 +90,7 @@ public class SecurityConfig {
                         // pasar por este filtro; sin este permiso, JwtAuthFilter no corre en ese reenvio (no
                         // filtra despachos de tipo ERROR) y el error original se reemplaza por un 401.
                         .requestMatchers("/error").permitAll()
-                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/cursos", "/api/cursos/*")
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/cursos", "/api/cursos/*", "/api/usuarios/*/foto")
                         .permitAll()
                         .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider())

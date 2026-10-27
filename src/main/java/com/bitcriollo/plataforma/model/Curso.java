@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-
+import org.hibernate.annotations.BatchSize;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -84,4 +84,9 @@ public class Curso {
     @OneToMany(mappedBy = "curso", cascade = CascadeType.ALL, orphanRemoval = true)
     // Las evaluaciones pertenecen al curso y se eliminan junto con él.
     private List<Evaluacion> evaluaciones = new ArrayList<>();
+
+        @OneToMany(mappedBy = "curso", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 50)
+    // Sesiones semanales del curso (dia y horas): con ellas se validan los cruces de horario del docente.
+    private List<HorarioCurso> horarios = new ArrayList<>();
 }

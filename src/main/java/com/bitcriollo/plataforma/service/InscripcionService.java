@@ -26,7 +26,7 @@ public class InscripcionService {
         this.cursoRepository = cursoRepository;
     }
 
-    @Transactional
+        @Transactional
     public InscripcionResponse inscribirse(InscripcionRequest request, Estudiante estudiante) {
         // Se bloquea la fila del curso hasta el fin de la transaccion: dos inscripciones concurrentes
         // sobre el mismo curso quedan serializadas y no pueden superar juntas el cupo maximo.
@@ -38,12 +38,17 @@ public class InscripcionService {
             throw new IllegalStateException("Este curso no esta disponible para inscripciones");
         }
 
-        boolean yaInscrito = inscripcionRepository
+        // Un estudiante tiene como maximo una inscripcion por curso (restriccion unica en la base de datos).
+        // Si ya tuvo una, se reutiliza en vez de crear otra.
+        Inscripcion existente = inscripcionRepository
                 .findByEstudianteIdAndCursoId(estudiante.getId(), curso.getId())
-                .filter(i -> i.getEstado() == EstadoInscripcion.ACTIVA)
-                .isPresent();
-        if (yaInscrito) {
+                .orElse(null);
+
+        if (existente != null && existente.getEstado() == EstadoInscripcion.ACTIVA) {
             throw new IllegalStateException("Ya estas inscrito en este curso");
+        }
+        if (existente != null && existente.getEstado() == EstadoInscripcion.COMPLETADA) {
+            throw new IllegalStateException("Ya completaste este curso");
         }
 
         if (curso.getCupoMaximo() != null) {
@@ -55,9 +60,15 @@ public class InscripcionService {
             }
         }
 
-        Inscripcion inscripcion = new Inscripcion();
-        inscripcion.setEstudiante(estudiante);
-        inscripcion.setCurso(curso);
+        Inscripcion inscripcion;
+        if (existente == null) {
+            inscripcion = new Inscripcion();
+            inscripcion.setEstudiante(estudiante);
+            inscripcion.setCurso(curso);
+        } else {
+            // Reinscripcion tras una cancelacion: se reactiva la misma fila (conserva su progreso de lecciones).
+            inscripcion = existente;
+        }
         inscripcion.setEstado(EstadoInscripcion.ACTIVA);
 
         inscripcionRepository.save(inscripcion);
