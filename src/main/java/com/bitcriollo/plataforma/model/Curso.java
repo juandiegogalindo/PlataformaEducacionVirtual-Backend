@@ -85,7 +85,7 @@ public class Curso {
     // Las evaluaciones pertenecen al curso y se eliminan junto con él.
     private List<Evaluacion> evaluaciones = new ArrayList<>();
 
-        @OneToMany(mappedBy = "curso", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "curso", cascade = CascadeType.ALL, orphanRemoval = true)
     @BatchSize(size = 50)
     // Sesiones semanales del curso (dia y horas): con ellas se validan los cruces de horario del docente.
     private List<HorarioCurso> horarios = new ArrayList<>();

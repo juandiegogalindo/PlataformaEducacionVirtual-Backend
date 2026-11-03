@@ -65,6 +65,10 @@
     {
       "key": "mensajeId",
       "value": ""
+    },
+    {
+      "key": "estudianteId",
+      "value": ""
     }
   ],
   "item": [
@@ -165,6 +169,51 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"correo\": \"admin@test.com\",\n  \"contrasena\": \"clave12345\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.accessToken) {",
+                  "  pm.collectionVariables.set('token', j.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', j.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login coordinador",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"coord@test.com\",\n  \"contrasena\": \"clave12345\"\n}"
             },
             "auth": {
               "type": "noauth"
@@ -631,6 +680,77 @@
               "raw": "{\n  \"contrasenaActual\": \"clave12345\",\n  \"contrasenaNueva\": \"clave67890\",\n  \"confirmarContrasenaNueva\": \"clave67890\"\n}"
             }
           }
+        },
+        {
+          "name": "Subir foto de perfil",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/perfil/foto",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "perfil",
+                "foto"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "foto",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "description": "Sube o reemplaza la foto del usuario autenticado. Cuerpo multipart/form-data con el campo 'foto' (JPEG, PNG o WebP, maximo 5 MB). Devuelve el perfil con fotoPerfilUrl = /api/usuarios/{id}/foto. 400 si el formato no es valido; 413 si pesa mas de 5 MB."
+          }
+        },
+        {
+          "name": "Eliminar foto de perfil",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/perfil/foto",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "perfil",
+                "foto"
+              ]
+            },
+            "description": "Elimina la foto del usuario autenticado y devuelve el perfil con fotoPerfilUrl en null."
+          }
+        },
+        {
+          "name": "Ver foto de un usuario (publico)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios/{{usuarioId}}/foto",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios",
+                "{{usuarioId}}",
+                "foto"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Devuelve la imagen de perfil del usuario indicado. Publico (se usa directo en <img>). 404 si el usuario no tiene foto. Incluye ETag: responde 304 si se envia If-None-Match con la version vigente."
+          }
         }
       ]
     },
@@ -654,7 +774,8 @@
             },
             "auth": {
               "type": "noauth"
-            }
+            },
+            "description": "Catalogo publico: devuelve solo los cursos en estado ACTIVO. Para ver cursos de cualquier estado usar 'Mis cursos (docente)' o 'Listar cursos para gestion'."
           }
         },
         {
@@ -700,8 +821,47 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Algebra I\",\n  \"descripcion\": \"Curso de prueba\",\n  \"fechaInicio\": \"2026-10-01\",\n  \"fechaFin\": \"2026-12-01\",\n  \"cupoMaximo\": 30\n}"
+              "raw": "{\n  \"nombre\": \"Algebra I\",\n  \"descripcion\": \"Curso de prueba\",\n  \"fechaInicio\": \"2026-10-01\",\n  \"fechaFin\": \"2026-12-01\",\n  \"cupoMaximo\": 30,\n  \"horarios\": [\n    {\n      \"diaSemana\": \"LUNES\",\n      \"horaInicio\": \"08:00\",\n      \"horaFin\": \"10:00\"\n    },\n    {\n      \"diaSemana\": \"MIERCOLES\",\n      \"horaInicio\": \"08:00\",\n      \"horaFin\": \"10:00\"\n    }\n  ]\n}"
+            },
+            "description": "Crea un curso a nombre del docente autenticado. 'horarios' es obligatorio (al menos una sesion semanal). Dos cursos activos del mismo docente solo chocan si sus fechas se solapan Y tienen una sesion el mismo dia con horas que se cruzan (409). Dias validos: LUNES, MARTES, MIERCOLES, JUEVES, VIERNES, SABADO, DOMINGO; horas en formato HH:mm. El docenteId se ignora si quien crea es un docente."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) pm.collectionVariables.set('cursoId', pm.response.json().id);"
+                ]
+              }
             }
+          ]
+        },
+        {
+          "name": "Crear curso (coordinador / administrador)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cursos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Algebra II\",\n  \"descripcion\": \"Curso creado por coordinacion\",\n  \"fechaInicio\": \"2026-10-01\",\n  \"fechaFin\": \"2026-12-01\",\n  \"cupoMaximo\": 30,\n  \"docenteId\": \"{{docenteId}}\",\n  \"horarios\": [\n    {\n      \"diaSemana\": \"LUNES\",\n      \"horaInicio\": \"08:00\",\n      \"horaFin\": \"10:00\"\n    },\n    {\n      \"diaSemana\": \"MIERCOLES\",\n      \"horaInicio\": \"08:00\",\n      \"horaFin\": \"10:00\"\n    }\n  ]\n}"
+            },
+            "description": "Un coordinador o administrador crea el curso indicando el docente que lo dictara (docenteId, obligatorio y debe estar activo). Mismas reglas de horarios que la creacion por docente."
           },
           "event": [
             {
@@ -738,8 +898,9 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Algebra I (editado)\",\n  \"descripcion\": \"Editado\",\n  \"fechaInicio\": \"2026-10-01\",\n  \"fechaFin\": \"2026-12-01\",\n  \"cupoMaximo\": 40\n}"
-            }
+              "raw": "{\n  \"nombre\": \"Algebra I (editado)\",\n  \"descripcion\": \"Editado\",\n  \"fechaInicio\": \"2026-10-01\",\n  \"fechaFin\": \"2026-12-01\",\n  \"cupoMaximo\": 40,\n  \"horarios\": [\n    {\n      \"diaSemana\": \"LUNES\",\n      \"horaInicio\": \"08:00\",\n      \"horaFin\": \"10:00\"\n    },\n    {\n      \"diaSemana\": \"MIERCOLES\",\n      \"horaInicio\": \"08:00\",\n      \"horaFin\": \"10:00\"\n    }\n  ]\n}"
+            },
+            "description": "Edita el curso. Pueden hacerlo el docente asignado, un coordinador o un administrador. 'horarios': si se omite se conservan los actuales; si se envia reemplaza a los anteriores (lista vacia = 400). Solo un coordinador o administrador puede enviar un docenteId distinto para reasignar el curso (un docente recibe 403)."
           }
         },
         {
@@ -757,7 +918,98 @@
                 "cursos",
                 "{{cursoId}}"
               ]
-            }
+            },
+            "description": "Archiva el curso (204). Pueden hacerlo el docente asignado, un coordinador o un administrador. Para volver a activarlo usar 'Reactivar curso'."
+          }
+        },
+        {
+          "name": "Reactivar curso",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/{{cursoId}}/activar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}",
+                "activar"
+              ]
+            },
+            "description": "Vuelve a poner ACTIVO un curso archivado (200 con el curso). Permisos: docente asignado, coordinador o administrador. 409 si ya esta activo o si al reactivarlo el horario se cruza con otro curso activo del docente."
+          }
+        },
+        {
+          "name": "Mis cursos (docente)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/docentes/mis-cursos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "docentes",
+                "mis-cursos"
+              ],
+              "query": [
+                {
+                  "key": "estado",
+                  "value": "ARCHIVADO",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Cursos que dicta el docente autenticado, de cualquier estado. Filtro opcional ?estado= (ACTIVO, ARCHIVADO, INACTIVO)."
+          }
+        },
+        {
+          "name": "Listar cursos para gestion (coordinador / administrador)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/gestion/cursos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "gestion",
+                "cursos"
+              ],
+              "query": [
+                {
+                  "key": "estado",
+                  "value": "ARCHIVADO",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Todos los cursos de la plataforma, de cualquier estado. Filtro opcional ?estado= (ACTIVO, ARCHIVADO, INACTIVO)."
+          }
+        },
+        {
+          "name": "Listar docentes activos (selector de docente)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/docentes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "docentes"
+              ]
+            },
+            "description": "Docentes activos (id, nombre, apellido, correo, especialidad), ordenados por apellido. Para el selector de docente al crear o reasignar cursos. Coordinador o administrador."
           }
         }
       ]
@@ -1584,6 +1836,60 @@
                 "calificaciones"
               ]
             }
+          }
+        }
+      ]
+    },
+    {
+      "name": "12. Seguimiento de estudiantes",
+      "item": [
+        {
+          "name": "Listar inscritos del curso con su avance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/{{cursoId}}/estudiantes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}",
+                "estudiantes"
+              ],
+              "query": [
+                {
+                  "key": "estado",
+                  "value": "ACTIVA",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Inscritos del curso con datos basicos, estado de la inscripcion y porcentaje de avance. Docente del curso, coordinador o administrador. Filtro opcional ?estado= (ACTIVA, COMPLETADA, CANCELADA)."
+          }
+        },
+        {
+          "name": "Ver avance de un estudiante en el curso",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/{{cursoId}}/estudiantes/{{estudianteId}}/progreso",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}",
+                "estudiantes",
+                "{{estudianteId}}",
+                "progreso"
+              ]
+            },
+            "description": "Avance leccion por leccion de un estudiante inscrito en el curso. Docente del curso, coordinador o administrador. 400 si el estudiante no esta inscrito en ese curso."
           }
         }
       ]
