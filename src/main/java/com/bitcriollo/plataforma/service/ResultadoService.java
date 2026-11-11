@@ -110,11 +110,14 @@ public class ResultadoService {
         validarDocenteDelCurso(resultado.getEvaluacion().getCurso(), docente);
 
         // La calificación utiliza una escala máxima de 5.0.
-        if (request.getCalificacion() > NOTA_MAXIMA) {
-            throw new IllegalArgumentException("La calificacion no puede superar " + NOTA_MAXIMA);
+        Double calificacion = request.getCalificacion();
+        if (calificacion == null || !Double.isFinite(calificacion)
+                || calificacion < 0 || calificacion > NOTA_MAXIMA) {
+            throw new IllegalArgumentException("La calificacion debe ser un numero finito entre 0 y "
+                    + NOTA_MAXIMA);
         }
 
-        double nota = request.getCalificacion();
+        double nota = calificacion;
         Evaluacion evaluacion = (Evaluacion) Hibernate.unproxy(resultado.getEvaluacion());
         // La penalización por entrega tardía se aplica únicamente cuando está configurada para la tarea.
         if (evaluacion instanceof Tarea tarea && esEntregaTardia(resultado, tarea)

@@ -23,11 +23,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class EvaluacionService {
 
     private static final double PESO_TOTAL_MAXIMO = 100.0;
+    private static final ConcurrentHashMap<Long, Object> BLOQUEOS_PESO = new ConcurrentHashMap<>();
 
     private final EvaluacionRepository evaluacionRepository;
     private final ExamenRepository examenRepository;
@@ -64,7 +66,7 @@ public class EvaluacionService {
 
     @Transactional
     public ExamenResponse crearExamen(Long cursoId, ExamenRequest request, Usuario docente) {
-        Curso curso = buscarCurso(cursoId);
+        Curso curso = buscarCursoConBloqueo(cursoId);
         validarDocenteDelCurso(curso, docente);
         validarPesoDisponible(cursoId, request.getPesoPorcentual());
 
@@ -90,22 +92,22 @@ public class EvaluacionService {
 
     @Transactional
     public TareaResponse crearTarea(Long cursoId, TareaRequest request, Usuario docente) {
-        Curso curso = buscarCurso(cursoId);
+        Curso curso = buscarCursoConBloqueo(cursoId);
         validarDocenteDelCurso(curso, docente);
-        validarPesoDisponible(cursoId, request.getPesoPorcentual());
 
         Tarea tarea = new Tarea();
-        cargarDatosBase(tarea, curso, request.getTitulo(), request.getDescripcion(), request.getPesoPorcentual());
-        tarea.setInstrucciones(request.getInstrucciones());
-        tarea.setFechaLimite(request.getFechaLimite());
-        tarea.setPermiteEntregaTardia(request.isPermiteEntregaTardia());
-        if (request.isPermiteEntregaTardia()) {
-            // Si se permiten entregas tardías, se establece una penalización de 0% cuando no se especifica.
-            Double penalizacion = request.getPenalizacionTardanzaPorcentaje();
-            tarea.setPenalizacionTardanzaPorcentaje(penalizacion != null ? penalizacion : 0.0);
+        synchronized (BLOQUEOS_PESO.computeIfAbsent(cursoId, ignored -> new Object())) {
+            validarPesoDisponible(cursoId, request.getPesoPorcentual());
+            cargarDatosBase(tarea, curso, request.getTitulo(), request.getDescripcion(), request.getPesoPorcentual());
+            tarea.setInstrucciones(request.getInstrucciones());
+            tarea.setFechaLimite(request.getFechaLimite());
+            tarea.setPermiteEntregaTardia(request.isPermiteEntregaTardia());
+            if (request.isPermiteEntregaTardia()) {
+                Double penalizacion = request.getPenalizacionTardanzaPorcentaje();
+                tarea.setPenalizacionTardanzaPorcentaje(penalizacion != null ? penalizacion : 0.0);
+            }
+            tareaRepository.save(tarea);
         }
-
-        tareaRepository.save(tarea);
         return mapearTarea(tarea);
     }
 
@@ -151,7 +153,7 @@ public class EvaluacionService {
 
     // Mismo criterio de inscripcion activa que el resto de modulos de contenido del curso.
     private void validarEstudianteInscrito(Curso curso, Usuario usuario) {
-        if (!cursoAccesoService.estaInscritoActivo(curso, usuario)) {
+        if (!cursoAccesoService.tieneAccesoDeLectura(curso, usuario)) {
             throw new AccessDeniedException("Debes estar inscrito en el curso para ver sus evaluaciones");
         }
     }
@@ -169,6 +171,9 @@ public class EvaluacionService {
     }
 
     private void validarPesoDisponible(Long cursoId, Double pesoNuevo) {
+        if (pesoNuevo == null || !Double.isFinite(pesoNuevo) || pesoNuevo < 0 || pesoNuevo > PESO_TOTAL_MAXIMO) {
+            throw new IllegalArgumentException("El peso debe ser un numero finito entre 0 y 100");
+        }
         double pesoActual = evaluacionRepository.findByCursoId(cursoId).stream()
                 .mapToDouble(Evaluacion::getPesoPorcentual)
                 .sum();
@@ -177,6 +182,11 @@ public class EvaluacionService {
             throw new IllegalStateException("La suma de los pesos de las evaluaciones del curso no puede superar "
                     + PESO_TOTAL_MAXIMO + "% (actual: " + pesoActual + "%)");
         }
+    }
+
+    private Curso buscarCursoConBloqueo(Long cursoId) {
+        return cursoRepository.findByIdConBloqueo(cursoId)
+                .orElseThrow(() -> new IllegalArgumentException("No existe un curso con id " + cursoId));
     }
 
     private void cargarDatosBase(Evaluacion evaluacion, Curso curso, String titulo, String descripcion, Double peso) {

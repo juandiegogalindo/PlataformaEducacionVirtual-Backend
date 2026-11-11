@@ -15,6 +15,7 @@ import com.bitcriollo.plataforma.model.enums.EstadoCurso;
 import com.bitcriollo.plataforma.repository.CursoRepository;
 import com.bitcriollo.plataforma.repository.DocenteRepository;
 import com.bitcriollo.plataforma.repository.ForoRepository;
+import com.bitcriollo.plataforma.repository.InscripcionRepository;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +24,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 @Service
 public class CursoService {
@@ -30,18 +33,22 @@ public class CursoService {
     private final CursoRepository cursoRepository;
     private final DocenteRepository docenteRepository;
     private final ForoRepository foroRepository;
+    private final InscripcionRepository inscripcionRepository;
     private final CursoAccesoService cursoAccesoService;
 
     public CursoService(CursoRepository cursoRepository, DocenteRepository docenteRepository,
-            ForoRepository foroRepository, CursoAccesoService cursoAccesoService) {
+            ForoRepository foroRepository, InscripcionRepository inscripcionRepository,
+            CursoAccesoService cursoAccesoService) {
         this.cursoRepository = cursoRepository;
         this.docenteRepository = docenteRepository;
         this.foroRepository = foroRepository;
+        this.inscripcionRepository = inscripcionRepository;
         this.cursoAccesoService = cursoAccesoService;
     }
 
     @Transactional
     public CursoResponse crearCurso(CursoRequest request, Usuario creador) {
+        validarFechas(request.getFechaInicio(), request.getFechaFin());
         Docente docente;
 
         if (creador instanceof Docente) {
@@ -72,6 +79,7 @@ public class CursoService {
         curso.setFechaInicio(request.getFechaInicio());
         curso.setFechaFin(request.getFechaFin());
         curso.setCupoMaximo(request.getCupoMaximo());
+        validarUrlImagen(request.getImagenPortadaUrl());
         curso.setImagenPortadaUrl(request.getImagenPortadaUrl());
         asignarHorarios(curso, horarios);
 
@@ -116,7 +124,9 @@ public class CursoService {
 
     @Transactional
     public CursoResponse actualizarCurso(Long id, CursoRequest request, Usuario solicitante) {
-        Curso curso = buscarCursoOLanzar(id);
+        Curso curso = cursoRepository.findByIdConBloqueo(id)
+                .orElseThrow(() -> new IllegalArgumentException("No existe un curso con id " + id));
+        validarFechas(request.getFechaInicio(), request.getFechaFin());
         validarPermisoSobreCurso(curso, solicitante);
 
         // Si se envia un docenteId distinto al actual, se reasigna el curso a ese docente.
@@ -144,6 +154,8 @@ public class CursoService {
         curso.setFechaInicio(request.getFechaInicio());
         curso.setFechaFin(request.getFechaFin());
         curso.setCupoMaximo(request.getCupoMaximo());
+        validarCupo(curso);
+        validarUrlImagen(request.getImagenPortadaUrl());
         curso.setImagenPortadaUrl(request.getImagenPortadaUrl());
         curso.setDocente(docente);
         if (horariosNuevos != null) {
@@ -204,6 +216,10 @@ public class CursoService {
 
         List<HorarioCurso> horarios = new ArrayList<>();
         for (HorarioRequest solicitud : solicitudes) {
+            if (solicitud == null || solicitud.getDiaSemana() == null
+                    || solicitud.getHoraInicio() == null || solicitud.getHoraFin() == null) {
+                throw new IllegalArgumentException("Cada sesion debe indicar dia, hora de inicio y hora de fin");
+            }
             if (!solicitud.getHoraInicio().isBefore(solicitud.getHoraFin())) {
                 throw new IllegalArgumentException(
                         "En cada sesion la hora de inicio debe ser anterior a la hora de fin");
@@ -224,6 +240,24 @@ public class CursoService {
             }
         }
         return horarios;
+    }
+
+    private void validarCupo(Curso curso) {
+        if (curso.getCupoMaximo() == null) {
+            return;
+        }
+
+        long inscritos = inscripcionRepository.countByCursoIdAndEstado(
+                curso.getId(), com.bitcriollo.plataforma.model.enums.EstadoInscripcion.ACTIVA);
+        if (curso.getCupoMaximo() < inscritos) {
+            throw new IllegalStateException("El cupo maximo no puede ser menor que los estudiantes inscritos");
+        }
+    }
+
+    private void validarFechas(LocalDate fechaInicio, LocalDate fechaFin) {
+        if (fechaInicio == null || fechaFin == null || fechaInicio.isAfter(fechaFin)) {
+            throw new IllegalArgumentException("La fecha de inicio debe ser anterior o igual a la fecha de fin");
+        }
     }
 
     private void asignarHorarios(Curso curso, List<HorarioCurso> horarios) {
@@ -275,6 +309,28 @@ public class CursoService {
 
     private boolean puedeAdministrarCursos(Usuario usuario) {
         return usuario instanceof CoordinadorAcademico || usuario instanceof Administrador;
+    }
+
+    private void validarUrlImagen(String url) {
+        if (url == null || url.isBlank()) {
+            return;
+        }
+        try {
+            URI uri = new URI(url.trim());
+            String scheme = uri.getScheme();
+            if (scheme == null || (!"https".equalsIgnoreCase(scheme)
+                    && !"http".equalsIgnoreCase(scheme))) {
+                throw new IllegalArgumentException("La URL de imagen usa un protocolo no permitido");
+            }
+            if ("http".equalsIgnoreCase(scheme)) {
+                throw new IllegalArgumentException("Las imagenes externas deben usar HTTPS");
+            }
+            if (uri.getHost() == null) {
+                throw new IllegalArgumentException("La URL de imagen no es valida");
+            }
+        } catch (URISyntaxException ex) {
+            throw new IllegalArgumentException("La URL de imagen no es valida");
+        }
     }
 
     private CursoResponse mapearAResponse(Curso curso) {

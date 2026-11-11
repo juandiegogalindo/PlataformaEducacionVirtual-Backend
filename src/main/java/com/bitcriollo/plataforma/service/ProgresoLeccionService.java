@@ -73,7 +73,7 @@ public class ProgresoLeccionService {
         List<Leccion> lecciones = leccionRepository.findByCursoIdOrderByOrdenAsc(cursoId);
 
         Map<Long, ProgresoLeccion> progresosPorLeccion = progresoRepository
-                .findByEstudianteId(estudianteId).stream()
+                .findByEstudianteIdAndLeccionCursoId(estudianteId, cursoId).stream()
                 .collect(Collectors.toMap(p -> p.getLeccion().getId(), p -> p));
 
         List<ProgresoLeccionResponse> detalle = lecciones.stream()

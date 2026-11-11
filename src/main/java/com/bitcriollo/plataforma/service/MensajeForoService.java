@@ -72,6 +72,7 @@ public class MensajeForoService {
     public MensajeForoResponse editarMensaje(Long cursoId, Long mensajeId, MensajeForoRequest request,
             Usuario solicitante) {
         Curso curso = buscarCursoOLanzar(cursoId);
+        validarParticipacionEnForo(curso, solicitante);
         MensajeForo mensaje = buscarMensajeDelCursoOLanzar(curso, mensajeId);
         validarAutorOModerador(curso, mensaje, solicitante);
 
@@ -85,6 +86,7 @@ public class MensajeForoService {
     @Transactional
     public void eliminarMensaje(Long cursoId, Long mensajeId, Usuario solicitante) {
         Curso curso = buscarCursoOLanzar(cursoId);
+        validarParticipacionEnForo(curso, solicitante);
         MensajeForo mensaje = buscarMensajeDelCursoOLanzar(curso, mensajeId);
         validarAutorOModerador(curso, mensaje, solicitante);
         mensajeRepository.delete(mensaje);

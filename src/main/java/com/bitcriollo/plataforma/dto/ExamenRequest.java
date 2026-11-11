@@ -20,7 +20,7 @@ public class ExamenRequest {
     private String descripcion;
 
     @NotNull
-    @DecimalMin(value = "0.0", inclusive = false)
+    @DecimalMin(value = "0.0")
     @DecimalMax("100.0")
     private Double pesoPorcentual;
 

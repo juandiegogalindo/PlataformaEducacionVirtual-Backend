@@ -1,6 +1,7 @@
 package com.bitcriollo.plataforma.security;
 
 import com.bitcriollo.plataforma.model.Usuario;
+import org.hibernate.Hibernate;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -14,7 +15,7 @@ public class UsuarioDetailsImpl implements UserDetails {
     private final Usuario usuario;
 
     public UsuarioDetailsImpl(Usuario usuario) {
-        this.usuario = usuario;
+        this.usuario = (Usuario) Hibernate.unproxy(usuario);
     }
 
     public Usuario getUsuario() {

@@ -13,6 +13,10 @@ public interface ProgresoLeccionRepository extends JpaRepository<ProgresoLeccion
 
     Optional<ProgresoLeccion> findByEstudianteIdAndLeccionId(Long estudianteId, Long leccionId);
 
+    @Query("select p from ProgresoLeccion p where p.estudiante.id = :estudianteId and p.leccion.curso.id = :cursoId")
+    List<ProgresoLeccion> findByEstudianteIdAndLeccionCursoId(@Param("estudianteId") Long estudianteId,
+            @Param("cursoId") Long cursoId);
+
         // Devuelve pares [estudianteId, cantidad de lecciones completadas] para todos los estudiantes del curso.
     @Query("select p.estudiante.id, count(p) from ProgresoLeccion p "
             + "where p.leccion.curso.id = :cursoId and p.completado = true group by p.estudiante.id")

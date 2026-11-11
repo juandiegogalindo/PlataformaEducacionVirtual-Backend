@@ -25,6 +25,10 @@ public interface CursoRepository extends JpaRepository<Curso, Long> {
     @Query("select c from Curso c where c.id = :id")
     Optional<Curso> findByIdParaInscripcion(Long id);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select c from Curso c where c.id = :id")
+    Optional<Curso> findByIdConBloqueo(Long id);
+
         // Cursos ACTIVOS de un docente cuyas fechas se solapan con el rango indicado, con sus horarios cargados.
     // cursoIdExcluir permite ignorar el propio curso al validar una actualizacion (puede ser null al crear).
     @Query("select distinct c from Curso c left join fetch c.horarios where c.docente.id = :docenteId "

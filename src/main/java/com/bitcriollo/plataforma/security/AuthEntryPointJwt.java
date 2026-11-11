@@ -31,7 +31,8 @@ public class AuthEntryPointJwt implements AuthenticationEntryPoint {
     public void commence(HttpServletRequest request, HttpServletResponse response,
             AuthenticationException authException) throws IOException, ServletException {
         ErrorResponse error = new ErrorResponse(LocalDateTime.now(), HttpStatus.UNAUTHORIZED.value(),
-                "Debes iniciar sesion para acceder a este recurso");
+                "Debes iniciar sesion para acceder a este recurso", "AUTHENTICATION_REQUIRED",
+                java.util.List.of(), response.getHeader("X-Correlation-Id"));
 
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);

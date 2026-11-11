@@ -30,8 +30,25 @@ Referencia de los endpoints REST del backend (Spring Boot). Generada a partir de
 - **Endpoints públicos (sin token):** `GET /api/health`, `POST /api/auth/**`, `GET /api/cursos`, `GET /api/cursos/{id}` y `GET /api/usuarios/{id}/foto`. Todo lo demás exige sesión.
 - **Filtros opcionales** (`?estado=`): un valor que no pertenezca al enum responde `400`.
 - **Salud del servicio:** `GET /api/health` (público) devuelve el estado del proyecto.
+- **Migración de refresh:** con `REFRESH_COOKIE_ENABLED=true` el backend emite `refresh_token` como cookie `HttpOnly`, `SameSite=Lax`, `Path=/api/auth` y duración de 7 días. En producción use `REFRESH_COOKIE_SECURE=true`; el frontend debe usar `withCredentials: true`, solicitar antes `GET /api/auth/csrf`, enviar `X-XSRF-TOKEN` y eliminar el refresh token de `localStorage`.
+- **Desarrollo local:** puede iniciar con `--spring.profiles.active=local` para habilitar cookies sin `Secure` y permitir `http://localhost:5173`. Este perfil no debe usarse en producción.
 
 ## Autenticación
+
+### Despliegue y rollback de seguridad
+
+1. Configure `JWT_SECRET` con una clave aleatoria de al menos 256 bits,
+   `JWT_ISSUER`, `JWT_AUDIENCE`, `CORS_ALLOWED_ORIGINS` y, si se migra a
+   cookies, `REFRESH_COOKIE_ENABLED=true` y `REFRESH_COOKIE_SECURE=true`.
+2. Ejecute `scripts/04_migracion_refresh_tokens.sql` antes de desplegar una
+   versión que use hashes. Los refresh tokens antiguos se invalidan y los
+   usuarios deberán iniciar sesión de nuevo.
+3. Verifique login, refresh, logout, `GET /api/auth/csrf`, CORS y una solicitud
+   protegida antes de habilitar tráfico general.
+4. Para rollback, desactive `REFRESH_COOKIE_ENABLED` y vuelva a la versión
+   anterior sólo si mantiene el esquema compatible. No restaure refresh tokens
+   antiguos ni exponga la columna `token`; la recuperación segura requiere que
+   los usuarios vuelvan a autenticarse.
 
 ### `POST /api/auth/registro`
 
@@ -56,6 +73,11 @@ Inicia sesión. Devuelve `accessToken` (15 min) y `refreshToken` (7 días). Tras
 - **Respuesta:** `200` [`AuthResponse`](#authresponse)
 
 Cambia un `refreshToken` vigente por un par de tokens nuevo. El anterior queda revocado (cada refresh token se usa una sola vez).
+Con cookies habilitadas puede omitirse el cuerpo: el token se lee de `refresh_token` y se rota la cookie. La reutilización de un token revocado revoca la sesión comprometida y responde `401`.
+
+### Migración de base de datos
+
+En producción ejecute antes del despliegue: `ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS revoked_at timestamp NULL;` y `ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS session_id varchar(36) NULL;`. Los tokens nuevos se guardan como SHA-256 en la columna `token`; los registros antiguos en claro deben invalidarse o migrarse mediante un proceso controlado, nunca registrando su valor.
 
 ### `POST /api/auth/logout`
 

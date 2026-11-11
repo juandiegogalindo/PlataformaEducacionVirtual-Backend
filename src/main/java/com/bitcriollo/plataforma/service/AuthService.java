@@ -15,11 +15,14 @@ import com.bitcriollo.plataforma.security.JwtService;
 import com.bitcriollo.plataforma.security.UsuarioDetailsImpl;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.hibernate.Hibernate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 
 @Service
 public class AuthService {
@@ -109,47 +112,102 @@ public class AuthService {
 
     @Transactional
     public AuthResponse refrescarToken(RefreshTokenRequest request) {
-        RefreshToken refreshToken = refreshTokenRepository.findByToken(request.getRefreshToken())
-                .orElseThrow(() -> new IllegalArgumentException("Refresh token invalido"));
+        String rawToken = validarRefreshRequest(request);
+        RefreshToken refreshToken = buscarRefreshToken(rawToken)
+                .orElseThrow(() -> new CredencialesInvalidasException("Refresh token invalido"));
 
         if (refreshToken.isRevocado() || refreshToken.getFechaExpiracion().isBefore(LocalDateTime.now())) {
-            // Un refresh token usado, revocado o expirado no puede generar una nueva sesión.
-            throw new IllegalStateException("Refresh token expirado o revocado, inicia sesion de nuevo");
+            if (refreshToken.isRevocado()) {
+                java.util.List<RefreshToken> sessionTokens = refreshToken.getSessionId() == null
+                        ? java.util.List.of(refreshToken)
+                        : refreshTokenRepository.findBySessionId(refreshToken.getSessionId());
+                if (sessionTokens != null) {
+                    sessionTokens.forEach(token -> {
+                        token.setRevocado(true);
+                        token.setRevokedAt(LocalDateTime.now());
+                    });
+                    refreshTokenRepository.saveAll(sessionTokens);
+                }
+            }
+            throw new CredencialesInvalidasException("Refresh token expirado o revocado");
         }
 
         Usuario usuario = refreshToken.getUsuario();
+        if (!usuario.isActivo() || (usuario.getBloqueadoHasta() != null
+                && usuario.getBloqueadoHasta().isAfter(LocalDateTime.now()))) {
+            throw new CredencialesInvalidasException("No se puede renovar la sesion");
+        }
 
         refreshToken.setRevocado(true);
+        refreshToken.setRevokedAt(LocalDateTime.now());
         refreshTokenRepository.save(refreshToken);
 
         // El refresh token se revoca antes de emitir uno nuevo para evitar su reutilización.
-        return generarRespuestaAuth(usuario);
+        return generarRespuestaAuth(usuario, refreshToken.getSessionId());
     }
 
     @Transactional
     public void logout(RefreshTokenRequest request) {
-        RefreshToken refreshToken = refreshTokenRepository.findByToken(request.getRefreshToken())
-                .orElseThrow(() -> new IllegalArgumentException("Refresh token invalido"));
+        String rawToken = validarRefreshRequest(request);
+        RefreshToken refreshToken = buscarRefreshToken(rawToken).orElse(null);
+        if (refreshToken == null) {
+            return;
+        }
 
         refreshToken.setRevocado(true);
+        refreshToken.setRevokedAt(LocalDateTime.now());
         refreshTokenRepository.save(refreshToken);
     }
 
     private AuthResponse generarRespuestaAuth(Usuario usuario) {
+        return generarRespuestaAuth(usuario, UUID.randomUUID().toString());
+    }
+
+    private AuthResponse generarRespuestaAuth(Usuario usuario, String sessionId) {
         UsuarioDetailsImpl userDetails = new UsuarioDetailsImpl(usuario);
         String accessToken = jwtService.generarToken(userDetails);
-        String refreshTokenValor = crearRefreshToken(usuario);
-        String rol = usuario.getClass().getSimpleName();
+        String refreshTokenValor = crearRefreshToken(usuario, sessionId);
+        String rol = Hibernate.unproxy(usuario).getClass().getSimpleName();
 
         return new AuthResponse(accessToken, refreshTokenValor, "Bearer", usuario.getCorreo(), rol);
     }
 
-    private String crearRefreshToken(Usuario usuario) {
+    private String crearRefreshToken(Usuario usuario, String sessionId) {
+        String valor = UUID.randomUUID().toString() + UUID.randomUUID();
         RefreshToken refreshToken = new RefreshToken();
-        refreshToken.setToken(UUID.randomUUID().toString());
+        refreshToken.setTokenHash(hash(valor));
         refreshToken.setUsuario(usuario);
+        refreshToken.setSessionId(sessionId);
         refreshToken.setFechaExpiracion(LocalDateTime.now().plusSeconds(refreshExpirationMs / 1000));
         refreshTokenRepository.save(refreshToken);
-        return refreshToken.getToken();
+        return valor;
+    }
+
+    private String validarRefreshRequest(RefreshTokenRequest request) {
+        if (request == null || request.getRefreshToken() == null || request.getRefreshToken().isBlank()) {
+            throw new CredencialesInvalidasException("Refresh token invalido");
+        }
+        return request.getRefreshToken();
+    }
+
+    private java.util.Optional<RefreshToken> buscarRefreshToken(String valor) {
+        String hash = hash(valor);
+        return refreshTokenRepository.findByTokenHash(hash)
+                // Compatibilidad de transición para datos antiguos almacenados en claro.
+                .or(() -> refreshTokenRepository.findByToken(valor));
+    }
+
+    private String hash(String valor) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(valor.getBytes(StandardCharsets.UTF_8));
+            StringBuilder result = new StringBuilder(64);
+            for (byte b : digest) {
+                result.append(String.format("%02x", b));
+            }
+            return result.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException("No se pudo proteger la sesion");
+        }
     }
 }

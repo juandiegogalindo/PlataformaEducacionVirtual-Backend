@@ -26,12 +26,23 @@ public class AuthAuditService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void registrarIntentoFallido(Usuario usuario) {
-        usuario.setIntentosFallidos(usuario.getIntentosFallidos() + 1);
-        // Después de tres intentos fallidos, el usuario queda bloqueado durante 15 minutos.
-        if (usuario.getIntentosFallidos() >= MAX_INTENTOS_FALLIDOS) {
-            usuario.setBloqueadoHasta(LocalDateTime.now().plusMinutes(MINUTOS_BLOQUEO));
+        usuarioRepository.bloquearFilaParaAuditoria(usuario.getId());
+        Usuario persistido = usuarioRepository.findById(usuario.getId()).orElseThrow();
+        if (persistido.getBloqueadoHasta() != null
+                && persistido.getBloqueadoHasta().isAfter(LocalDateTime.now())) {
+            return;
         }
-        usuarioRepository.save(usuario);
+        if (persistido.getBloqueadoHasta() != null
+                && persistido.getBloqueadoHasta().isBefore(LocalDateTime.now())) {
+            persistido.setIntentosFallidos(0);
+            persistido.setBloqueadoHasta(null);
+        }
+        persistido.setIntentosFallidos(persistido.getIntentosFallidos() + 1);
+        // Después de tres intentos fallidos, el usuario queda bloqueado durante 15 minutos.
+        if (persistido.getIntentosFallidos() >= MAX_INTENTOS_FALLIDOS) {
+            persistido.setBloqueadoHasta(LocalDateTime.now().plusMinutes(MINUTOS_BLOQUEO));
+        }
+        usuarioRepository.save(persistido);
     }
     // El registro de auditoría se ejecuta en una transacción independiente para conservar el evento.
     @Transactional(propagation = Propagation.REQUIRES_NEW)

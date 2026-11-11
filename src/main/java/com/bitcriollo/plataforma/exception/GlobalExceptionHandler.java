@@ -9,48 +9,57 @@ import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(CredencialesInvalidasException.class)
-    public ResponseEntity<ErrorResponse> manejarCredencialesInvalidas(CredencialesInvalidasException ex) {
+    public ResponseEntity<ErrorResponse> manejarCredencialesInvalidas(CredencialesInvalidasException ex,
+            HttpServletRequest request) {
         // Las credenciales de autenticacion invalidas se informan como HTTP 401.
-        ErrorResponse error = new ErrorResponse(LocalDateTime.now(), HttpStatus.UNAUTHORIZED.value(), ex.getMessage());
+        ErrorResponse error = error(request, HttpStatus.UNAUTHORIZED, ex.getMessage(), "AUTHENTICATION_FAILED");
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponse> manejarIllegalArgument(IllegalArgumentException ex) {
+    public ResponseEntity<ErrorResponse> manejarIllegalArgument(IllegalArgumentException ex,
+            HttpServletRequest request) {
         // Los argumentos inválidos se informan como errores de solicitud HTTP 400.
-        ErrorResponse error = new ErrorResponse(LocalDateTime.now(), HttpStatus.BAD_REQUEST.value(), ex.getMessage());
+        ErrorResponse error = error(request, HttpStatus.BAD_REQUEST, ex.getMessage(), "BAD_REQUEST");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
     @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<ErrorResponse> manejarIllegalState(IllegalStateException ex) {
+    public ResponseEntity<ErrorResponse> manejarIllegalState(IllegalStateException ex,
+            HttpServletRequest request) {
         // Los conflictos derivados del estado actual del recurso se informan como HTTP
         // 409.
-        ErrorResponse error = new ErrorResponse(LocalDateTime.now(), HttpStatus.CONFLICT.value(), ex.getMessage());
+        ErrorResponse error = error(request, HttpStatus.CONFLICT, ex.getMessage(), "CONFLICT");
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> manejarValidacion(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ErrorResponse> manejarValidacion(MethodArgumentNotValidException ex,
+            HttpServletRequest request) {
         // Se agrupan los errores de validación para devolver un mensaje descriptivo al
         // cliente.
         String mensaje = ex.getBindingResult().getFieldErrors().stream()
                 .map(fieldError -> fieldError.getField() + ": " + fieldError.getDefaultMessage())
                 .collect(Collectors.joining(" | "));
-        ErrorResponse error = new ErrorResponse(LocalDateTime.now(), HttpStatus.BAD_REQUEST.value(), mensaje);
+        ErrorResponse error = new ErrorResponse(LocalDateTime.now(), HttpStatus.BAD_REQUEST.value(), mensaje,
+                "VALIDATION_ERROR", ex.getBindingResult().getFieldErrors().stream()
+                        .map(fieldError -> fieldError.getField() + ": " + fieldError.getDefaultMessage()).toList(),
+                correlationId(request));
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
     @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> manejarAccesoDenegado(
-            org.springframework.security.access.AccessDeniedException ex) {
+            org.springframework.security.access.AccessDeniedException ex, HttpServletRequest request) {
         // Los accesos rechazados por permisos insuficientes se informan como HTTP 403.
-        ErrorResponse error = new ErrorResponse(LocalDateTime.now(), HttpStatus.FORBIDDEN.value(), ex.getMessage());
+        ErrorResponse error = error(request, HttpStatus.FORBIDDEN,
+                "No tienes permisos para realizar esta operacion", "ACCESS_DENIED");
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
     }
 
@@ -98,5 +107,14 @@ public class GlobalExceptionHandler {
         ErrorResponse error = new ErrorResponse(LocalDateTime.now(), HttpStatus.BAD_REQUEST.value(),
                 "Falta el archivo en la peticion (campo '" + ex.getRequestPartName() + "')");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    private ErrorResponse error(HttpServletRequest request, HttpStatus status, String mensaje, String codigo) {
+        return new ErrorResponse(LocalDateTime.now(), status.value(), mensaje, codigo,
+                java.util.List.of(), correlationId(request));
+    }
+
+    private String correlationId(HttpServletRequest request) {
+        return request.getAttribute("correlationId") instanceof String id ? id : null;
     }
 }

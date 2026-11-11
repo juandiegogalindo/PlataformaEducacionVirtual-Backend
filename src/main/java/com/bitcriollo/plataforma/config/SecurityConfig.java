@@ -1,6 +1,8 @@
 package com.bitcriollo.plataforma.config;
 
 import com.bitcriollo.plataforma.security.AuthEntryPointJwt;
+import com.bitcriollo.plataforma.security.CsrfAccessDeniedHandler;
+import com.bitcriollo.plataforma.security.RateLimitFilter;
 import com.bitcriollo.plataforma.security.JwtAuthFilter;
 import com.bitcriollo.plataforma.security.UsuarioDetailsServiceImpl;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,8 +11,8 @@ import org.springframework.security.config.Customizer;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Arrays;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -22,6 +24,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 
 @Configuration
@@ -31,15 +34,23 @@ public class SecurityConfig {
     private final UsuarioDetailsServiceImpl usuarioDetailsService;
     private final JwtAuthFilter jwtAuthFilter;
     private final AuthEntryPointJwt authEntryPointJwt;
+    private final CsrfAccessDeniedHandler csrfAccessDeniedHandler;
+    private final RateLimitFilter rateLimitFilter;
 
     @Value("${app.cors.allowed-origins}")
     private String allowedOrigins;
 
+    @Value("${app.auth.refresh-cookie.enabled:false}")
+    private boolean refreshCookieEnabled;
+
     public SecurityConfig(UsuarioDetailsServiceImpl usuarioDetailsService, JwtAuthFilter jwtAuthFilter,
-            AuthEntryPointJwt authEntryPointJwt) {
+            AuthEntryPointJwt authEntryPointJwt, CsrfAccessDeniedHandler csrfAccessDeniedHandler,
+            RateLimitFilter rateLimitFilter) {
         this.usuarioDetailsService = usuarioDetailsService;
         this.jwtAuthFilter = jwtAuthFilter;
         this.authEntryPointJwt = authEntryPointJwt;
+        this.csrfAccessDeniedHandler = csrfAccessDeniedHandler;
+        this.rateLimitFilter = rateLimitFilter;
     }
 
     @Bean
@@ -65,9 +76,16 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         // Las solicitudes del frontend se permiten únicamente desde los orígenes configurados.
-        config.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
+        List<String> origins = Arrays.stream(allowedOrigins.split(",")).map(String::trim).filter(s -> !s.isBlank())
+                .toList();
+        if (origins.contains("*")) {
+            throw new IllegalStateException("CORS no puede combinar allowCredentials con origen *");
+        }
+        config.setAllowedOrigins(origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-XSRF-TOKEN", "X-Correlation-Id"));
+        config.setAllowCredentials(true);
+        config.setExposedHeaders(List.of("X-Correlation-Id"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", config);
@@ -78,11 +96,20 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(Customizer.withDefaults())
-                .csrf(AbstractHttpConfigurer::disable)
+                .csrf(csrf -> {
+                    csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse());
+                    if (!refreshCookieEnabled) {
+                        // El modo JSON no autentica con cookies; se conserva el contrato existente
+                        // sin exponer los endpoints a CSRF basado en cookies.
+                        csrf.ignoringRequestMatchers("/api/**");
+                    }
+                })
                 // La API utiliza JWT, por lo que no mantiene sesiones HTTP en el servidor.
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // Sin token o con un token invalido se responde 401; los fallos de autorizacion siguen en 403.
-                .exceptionHandling(handling -> handling.authenticationEntryPoint(authEntryPointJwt))
+                .exceptionHandling(handling -> handling
+                        .authenticationEntryPoint(authEntryPointJwt)
+                        .accessDeniedHandler(csrfAccessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
                         // Salud y autenticación son públicos para permitir verificar el servicio e iniciar sesión.
                         .requestMatchers("/api/health", "/api/auth/**").permitAll()
@@ -96,6 +123,8 @@ public class SecurityConfig {
                 .authenticationProvider(authenticationProvider())
                 // El filtro JWT valida el token antes de que Spring procese la autenticación estándar.
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                // Rate limiting is deliberately placed before authentication to also protect login/refresh.
+        http.addFilterBefore(rateLimitFilter, JwtAuthFilter.class);
 
         return http.build();
     }
