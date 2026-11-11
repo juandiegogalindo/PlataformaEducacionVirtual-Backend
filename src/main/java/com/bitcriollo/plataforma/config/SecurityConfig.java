@@ -78,13 +78,12 @@ public class SecurityConfig {
         // Las solicitudes del frontend se permiten únicamente desde los orígenes configurados.
         List<String> origins = Arrays.stream(allowedOrigins.split(",")).map(String::trim).filter(s -> !s.isBlank())
                 .toList();
-        if (origins.contains("*")) {
-            throw new IllegalStateException("CORS no puede combinar allowCredentials con origen *");
-        }
         config.setAllowedOrigins(origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-XSRF-TOKEN", "X-Correlation-Id"));
-        config.setAllowCredentials(true);
+        // El comodin es util mientras no exista un frontend desplegado, pero el
+        // navegador no permite combinarlo con credenciales o cookies.
+        config.setAllowCredentials(!origins.contains("*"));
         config.setExposedHeaders(List.of("X-Correlation-Id"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

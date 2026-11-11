@@ -38,6 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.datasource.username=sa", "spring.datasource.password=",
         "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
         "spring.jpa.hibernate.ddl-auto=create-drop", "spring.jpa.show-sql=false",
+        "app.auth.refresh-cookie.enabled=false",
         "app.jwt.secret=clave-exclusiva-de-pruebas-con-mas-de-32-bytes",
         "logging.level.org.hibernate.SQL=OFF"
 })

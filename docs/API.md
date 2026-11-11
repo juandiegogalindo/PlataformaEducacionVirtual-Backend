@@ -31,7 +31,7 @@ Referencia de los endpoints REST del backend (Spring Boot). Generada a partir de
 - **Filtros opcionales** (`?estado=`): un valor que no pertenezca al enum responde `400`.
 - **Salud del servicio:** `GET /api/health` (público) devuelve el estado del proyecto.
 - **Migración de refresh:** con `REFRESH_COOKIE_ENABLED=true` el backend emite `refresh_token` como cookie `HttpOnly`, `SameSite=Lax`, `Path=/api/auth` y duración de 7 días. En producción use `REFRESH_COOKIE_SECURE=true`; el frontend debe usar `withCredentials: true`, solicitar antes `GET /api/auth/csrf`, enviar `X-XSRF-TOKEN` y eliminar el refresh token de `localStorage`.
-- **Desarrollo local:** puede iniciar con `--spring.profiles.active=local` para habilitar cookies sin `Secure` y permitir `http://localhost:5173`. Este perfil no debe usarse en producción.
+- **Desarrollo local:** puede iniciar con `--spring.profiles.active=local` para habilitar cookies sin `Secure` y permitir `http://localhost:5173`. Este perfil no debe usarse en producción. Mientras no haya frontend, `CORS_ALLOWED_ORIGINS=*` es válido, pero desactiva credenciales; para cookies debe configurarse un origen explícito.
 
 ## Autenticación
 
