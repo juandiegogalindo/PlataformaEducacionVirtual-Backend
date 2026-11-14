@@ -321,6 +321,14 @@ class RevisionIntegracionTest {
                 .andExpect(jsonPath("totalRegistros").value(1))
                 .andExpect(jsonPath("resultados[0].estudianteId").value(objetivo.getId()))
                 .andExpect(jsonPath("resultados[0].cursoId").value(cursoCoincidente.getId()));
+
+        mvc.perform(get("/api/reportes/academicos")
+                        .with(user(new UsuarioDetailsImpl(coordinador())))
+                        .param("tipoReporte", "MATRICULAS")
+                        .param("periodo", "2026-1")
+                        .param("cursoId", cursoCoincidente.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("totalRegistros").value(2));
     }
 
     @Test

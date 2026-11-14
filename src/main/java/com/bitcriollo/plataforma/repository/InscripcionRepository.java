@@ -24,10 +24,21 @@ public interface InscripcionRepository extends JpaRepository<Inscripcion, Long> 
             + "join fetch i.curso c "
             + "where c.fechaInicio is not null and c.fechaFin is not null "
             + "and c.fechaInicio <= :periodoHasta and c.fechaFin >= :periodoDesde "
-            + "and (:programa is null or lower(trim(e.programaAcademico)) = lower(:programa)) "
             + "and (:cursoId is null or c.id = :cursoId) "
             + "order by e.apellido asc, e.nombre asc, c.nombre asc")
-    List<Inscripcion> buscarMatriculasParaReporte(@Param("periodoDesde") LocalDate periodoDesde,
+    List<Inscripcion> buscarMatriculasParaReporteSinPrograma(@Param("periodoDesde") LocalDate periodoDesde,
+            @Param("periodoHasta") LocalDate periodoHasta,
+            @Param("cursoId") Long cursoId);
+
+    @Query("select i from Inscripcion i "
+            + "join fetch i.estudiante e "
+            + "join fetch i.curso c "
+            + "where c.fechaInicio is not null and c.fechaFin is not null "
+            + "and c.fechaInicio <= :periodoHasta and c.fechaFin >= :periodoDesde "
+            + "and lower(trim(e.programaAcademico)) = lower(:programa) "
+            + "and (:cursoId is null or c.id = :cursoId) "
+            + "order by e.apellido asc, e.nombre asc, c.nombre asc")
+    List<Inscripcion> buscarMatriculasParaReportePorPrograma(@Param("periodoDesde") LocalDate periodoDesde,
             @Param("periodoHasta") LocalDate periodoHasta,
             @Param("programa") String programa,
             @Param("cursoId") Long cursoId);

@@ -35,9 +35,12 @@ public class ReporteAcademicoService {
             throw new IllegalArgumentException("El cursoId debe ser un numero positivo");
         }
 
-        List<MatriculaReporteResponse> resultados = inscripcionRepository
-                .buscarMatriculasParaReporte(fechas.desde(), fechas.hasta(), programaNormalizado, cursoId)
-                .stream()
+        List<Inscripcion> matriculas = programaNormalizado == null
+                ? inscripcionRepository.buscarMatriculasParaReporteSinPrograma(
+                        fechas.desde(), fechas.hasta(), cursoId)
+                : inscripcionRepository.buscarMatriculasParaReportePorPrograma(
+                        fechas.desde(), fechas.hasta(), programaNormalizado, cursoId);
+        List<MatriculaReporteResponse> resultados = matriculas.stream()
                 .map(this::mapearMatricula)
                 .toList();
 
