@@ -25,6 +25,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -53,6 +54,7 @@ class RevisionIntegracionTest {
     @Autowired private AuthAuditService auditoria;
     @Autowired private EvaluacionService evaluacionesService;
     @Autowired private ResultadoService resultadosService;
+    @Autowired private CursoService cursoService;
     @Autowired private EstudianteRepository estudiantes;
     @Autowired private CoordinadorAcademicoRepository coordinadores;
     @Autowired private DocenteRepository docentes;
@@ -168,6 +170,65 @@ class RevisionIntegracionTest {
                 .contentType("application/json")
                 .content("{\"nombre\":\"Curso\",\"fechaInicio\":\"2026-11-10\",\"fechaFin\":\"2026-12-10\",\"horarios\":[null]}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void rechazaCursosDuplicadosAunqueLosHorariosSeanConsecutivos() throws Exception {
+        Docente docente = docente();
+        UsuarioDetailsImpl usuario = new UsuarioDetailsImpl(docente);
+        String solicitud = """
+                {"nombre":"Cálculo Diferencial","fechaInicio":"2027-02-01","fechaFin":"2027-05-30",
+                 "horarios":[{"diaSemana":"LUNES","horaInicio":"%s","horaFin":"%s"}]}
+                """;
+        String cursoInicial = solicitud.formatted("08:00", "10:00");
+        String cursoSiguiente = solicitud.formatted("10:00", "12:00");
+
+        mvc.perform(post("/api/cursos").with(user(usuario)).contentType("application/json").content(cursoInicial))
+                .andExpect(status().isCreated());
+        mvc.perform(post("/api/cursos").with(user(usuario)).contentType("application/json").content(cursoSiguiente))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("mensaje").value("Ya existe un curso activo con el mismo nombre, docente y fechas"));
+        assertThat(cursos.findByDocenteId(docente.getId())).hasSize(1);
+
+        mvc.perform(post("/api/cursos").with(user(usuario)).contentType("application/json")
+                .content(cursoSiguiente.replace("Cálculo Diferencial", "Cálculo Integral")))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void editarYReactivarRespetanLaUnicidadDeLosCursosActivos() {
+        Docente docente = docente();
+        CursoRequest inicial = cursoRequest("Cálculo Diferencial", 8);
+        Long idInicial = cursoService.crearCurso(inicial, docente).getId();
+        assertThat(cursoService.actualizarCurso(idInicial, inicial, docente).getId()).isEqualTo(idInicial);
+        Long idOtro = cursoService.crearCurso(cursoRequest("Cálculo Integral", 10), docente).getId();
+
+        CursoRequest duplicado = cursoRequest("Cálculo Diferencial", 10);
+        assertThatThrownBy(() -> cursoService.actualizarCurso(idOtro, duplicado, docente))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("mismo nombre, docente y fechas");
+
+        cursoService.archivarCurso(idInicial, docente);
+        cursoService.actualizarCurso(idOtro, duplicado, docente);
+        assertThatThrownBy(() -> cursoService.activarCurso(idInicial, docente))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("mismo nombre, docente y fechas");
+        assertThat(cursoService.obtenerPorId(idInicial).getEstado()).isEqualTo(EstadoCurso.ARCHIVADO);
+        assertThat(cursoService.obtenerPorId(idOtro).getEstado()).isEqualTo(EstadoCurso.ACTIVO);
+    }
+
+    @Test
+    void dosSolicitudesConcurrentesSoloCreanUnCurso() throws Exception {
+        Docente docente = docente();
+        List<String> resultados = enParalelo(2, () -> {
+            try {
+                cursoService.crearCurso(cursoRequest("Cálculo Diferencial", 8), docente);
+                return "CREADO";
+            } catch (IllegalStateException ex) {
+                return ex.getMessage();
+            }
+        });
+        assertThat(resultados).containsExactlyInAnyOrder("CREADO",
+                "Ya existe un curso activo con el mismo nombre, docente y fechas");
+        assertThat(cursos.findByDocenteId(docente.getId())).hasSize(1);
     }
 
     @Test
@@ -411,6 +472,21 @@ class RevisionIntegracionTest {
             return inscripciones.saveAndFlush(inscripcion);
         });
     }
+
+    private CursoRequest cursoRequest(String nombre, int horaInicio) {
+        CursoRequest request = new CursoRequest();
+        request.setNombre(nombre);
+        request.setFechaInicio(LocalDate.of(2027, 2, 1));
+        request.setFechaFin(LocalDate.of(2027, 5, 30));
+
+        HorarioRequest horario = new HorarioRequest();
+        horario.setDiaSemana(DiaSemana.LUNES);
+        horario.setHoraInicio(LocalTime.of(horaInicio, 0));
+        horario.setHoraFin(horario.getHoraInicio().plusHours(2));
+        request.setHorarios(List.of(horario));
+        return request;
+    }
+
     private RefreshToken token(Estudiante estudiante) {
         return tx.execute(status -> {
             RefreshToken token = new RefreshToken();

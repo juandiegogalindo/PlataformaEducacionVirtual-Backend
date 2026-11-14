@@ -68,7 +68,8 @@ public class CursoService {
         // Todo curso nuevo debe tener al menos una sesion semanal.
         List<HorarioCurso> horarios = construirHorarios(request.getHorarios());
 
-        validarSinCruceDeHorario(docente, request.getFechaInicio(), request.getFechaFin(), horarios, null);
+        validarConflictosDeCurso(docente, request.getNombre(), request.getFechaInicio(), request.getFechaFin(),
+                horarios, null, true);
 
         Curso curso = new Curso();
         curso.setNombre(request.getNombre());
@@ -146,8 +147,8 @@ public class CursoService {
                 : null;
         List<HorarioCurso> horariosVigentes = (horariosNuevos != null) ? horariosNuevos : curso.getHorarios();
 
-        validarSinCruceDeHorario(docente, request.getFechaInicio(), request.getFechaFin(), horariosVigentes,
-                curso.getId());
+        validarConflictosDeCurso(docente, request.getNombre(), request.getFechaInicio(), request.getFechaFin(),
+                horariosVigentes, curso.getId(), curso.getEstado() == EstadoCurso.ACTIVO);
 
         curso.setNombre(request.getNombre());
         curso.setDescripcion(request.getDescripcion());
@@ -169,7 +170,8 @@ public class CursoService {
 
     @Transactional
     public void archivarCurso(Long id, Usuario solicitante) {
-        Curso curso = buscarCursoOLanzar(id);
+        Curso curso = cursoRepository.findByIdConBloqueo(id)
+                .orElseThrow(() -> new IllegalArgumentException("No existe un curso con id " + id));
         validarPermisoSobreCurso(curso, solicitante);
         curso.setEstado(EstadoCurso.ARCHIVADO);
         cursoRepository.save(curso);
@@ -177,16 +179,16 @@ public class CursoService {
 
     @Transactional
     public CursoResponse activarCurso(Long id, Usuario solicitante) {
-        Curso curso = buscarCursoOLanzar(id);
+        Curso curso = cursoRepository.findByIdConBloqueo(id)
+                .orElseThrow(() -> new IllegalArgumentException("No existe un curso con id " + id));
         validarPermisoSobreCurso(curso, solicitante);
 
         if (curso.getEstado() == EstadoCurso.ACTIVO) {
             throw new IllegalStateException("El curso ya esta activo");
         }
 
-        // Los cursos archivados no cuentan para el cruce de horarios: al reactivar hay que volver a validarlo.
-        validarSinCruceDeHorario(curso.getDocente(), curso.getFechaInicio(), curso.getFechaFin(),
-                curso.getHorarios(), curso.getId());
+        validarConflictosDeCurso(curso.getDocente(), curso.getNombre(), curso.getFechaInicio(), curso.getFechaFin(),
+                curso.getHorarios(), curso.getId(), true);
 
         curso.setEstado(EstadoCurso.ACTIVO);
         cursoRepository.save(curso);
@@ -275,16 +277,17 @@ public class CursoService {
                 && b.getHoraInicio().isBefore(a.getHoraFin());
     }
 
-    // Un docente no puede dictar dos cursos activos que coincidan en fechas Y tengan una sesion el mismo
-    // dia con horas que se cruzan. Un curso sin horario definido (cursos anteriores) no genera conflictos.
-    private void validarSinCruceDeHorario(Docente docente, LocalDate fechaInicio, LocalDate fechaFin,
-            List<HorarioCurso> horarios, Long cursoIdExcluir) {
-        if (horarios.isEmpty()) {
-            return;
-        }
-
+    private void validarConflictosDeCurso(Docente docente, String nombre, LocalDate fechaInicio, LocalDate fechaFin,
+            List<HorarioCurso> horarios, Long cursoIdExcluir, boolean validarDuplicados) {
+        // Serializa las comprobaciones y escrituras concurrentes para el mismo docente.
+        docenteRepository.bloquearFilaParaCursos(docente.getId());
         List<Curso> candidatos = cursoRepository.findCursosActivosConFechasCruzadas(
                 docente.getId(), cursoIdExcluir, fechaInicio, fechaFin);
+
+        if (validarDuplicados && candidatos.stream().anyMatch(curso -> curso.getNombre().equals(nombre)
+                && curso.getFechaInicio().equals(fechaInicio) && curso.getFechaFin().equals(fechaFin))) {
+            throw new IllegalStateException("Ya existe un curso activo con el mismo nombre, docente y fechas");
+        }
 
         for (Curso otro : candidatos) {
             for (HorarioCurso nueva : horarios) {
