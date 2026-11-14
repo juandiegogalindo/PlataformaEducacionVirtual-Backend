@@ -14,6 +14,12 @@ psql -U postgres -d plataforma_educativa -v ON_ERROR_STOP=1 -f scripts/02_poblac
 `01_creacion.sql` crea el esquema de las entidades JPA en una base vacia.
 La tabla `refresh_tokens` guarda únicamente el SHA-256 del token, además de
 estado de revocación y sesión. Omitirlo si Hibernate ya creó las tablas.
+
+Para validar el esquema y el ciclo de reinicio sin una instancia externa de
+PostgreSQL, ejecute `mvn -Dtest=ScriptCreacionSchemaValidationTest test`. La
+prueba carga `01_creacion.sql`, valida las entidades con Hibernate, ejecuta
+`03_eliminacion.sql` y vuelve a crear el esquema.
+
 Para una base existente ejecutar primero:
 
 ```powershell
