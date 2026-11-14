@@ -69,6 +69,14 @@
     {
       "key": "estudianteId",
       "value": ""
+    },
+    {
+      "key": "periodoAcademico",
+      "value": ""
+    },
+    {
+      "key": "programaAcademico",
+      "value": "Ingenieria de Sistemas"
     }
   ],
   "item": [
@@ -1893,6 +1901,263 @@
           }
         }
       ]
+    },
+    {
+      "name": "13. Reportes academicos",
+      "description": "Reportes de matriculas disponibles para coordinadores academicos y administradores.",
+      "item": [
+        {
+          "name": "Consultar matriculas por periodo y programa",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reportes/academicos?tipoReporte=MATRICULAS&periodo={{periodoAcademico}}&programa={{programaAcademico}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reportes",
+                "academicos"
+              ],
+              "query": [
+                {
+                  "key": "tipoReporte",
+                  "value": "MATRICULAS"
+                },
+                {
+                  "key": "periodo",
+                  "value": "{{periodoAcademico}}"
+                },
+                {
+                  "key": "programa",
+                  "value": "{{programaAcademico}}"
+                }
+              ]
+            },
+            "description": "Coordinador o administrador. periodoAcademico se calcula para el semestre calendario actual. Si hay resultados, la solicitud guarda el primer cursoId en la variable de coleccion para los filtros y descargas siguientes. Sin coincidencias el API responde 200 con totalRegistros 0 y resultados []."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('El reporte responde 200', () => pm.response.to.have.status(200));",
+                  "const reporte = pm.response.json();",
+                  "pm.test('La respuesta contiene filtros y resultados', () => {",
+                  "  pm.expect(reporte.filtros.tipoReporte).to.eql('MATRICULAS');",
+                  "  pm.expect(reporte.resultados).to.be.an('array');",
+                  "  pm.expect(reporte.totalRegistros).to.eql(reporte.resultados.length);",
+                  "});",
+                  "if (reporte.resultados.length > 0) {",
+                  "  pm.collectionVariables.set('cursoId', String(reporte.resultados[0].cursoId));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar matriculas de un curso",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reportes/academicos?tipoReporte=MATRICULAS&periodo={{periodoAcademico}}&programa={{programaAcademico}}&cursoId={{cursoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reportes",
+                "academicos"
+              ],
+              "query": [
+                {
+                  "key": "tipoReporte",
+                  "value": "MATRICULAS"
+                },
+                {
+                  "key": "periodo",
+                  "value": "{{periodoAcademico}}"
+                },
+                {
+                  "key": "programa",
+                  "value": "{{programaAcademico}}"
+                },
+                {
+                  "key": "cursoId",
+                  "value": "{{cursoId}}"
+                }
+              ]
+            },
+            "description": "Filtro opcional cursoId. Ejecuta primero la consulta por periodo y programa para completar la variable cursoId, o asigna manualmente un id existente."
+          }
+        },
+        {
+          "name": "Descargar reporte en PDF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reportes/academicos/exportar/pdf?tipoReporte=MATRICULAS&periodo={{periodoAcademico}}&programa={{programaAcademico}}&cursoId={{cursoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reportes",
+                "academicos",
+                "exportar",
+                "pdf"
+              ],
+              "query": [
+                {
+                  "key": "tipoReporte",
+                  "value": "MATRICULAS"
+                },
+                {
+                  "key": "periodo",
+                  "value": "{{periodoAcademico}}"
+                },
+                {
+                  "key": "programa",
+                  "value": "{{programaAcademico}}"
+                },
+                {
+                  "key": "cursoId",
+                  "value": "{{cursoId}}"
+                }
+              ]
+            },
+            "description": "Coordinador o administrador. Devuelve un archivo application/pdf con los filtros y las matriculas del reporte."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('El PDF se descarga correctamente', () => pm.response.to.have.status(200));",
+                  "pm.test('El contenido es PDF', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/pdf'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Descargar reporte en Excel",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reportes/academicos/exportar/excel?tipoReporte=MATRICULAS&periodo={{periodoAcademico}}&programa={{programaAcademico}}&cursoId={{cursoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reportes",
+                "academicos",
+                "exportar",
+                "excel"
+              ],
+              "query": [
+                {
+                  "key": "tipoReporte",
+                  "value": "MATRICULAS"
+                },
+                {
+                  "key": "periodo",
+                  "value": "{{periodoAcademico}}"
+                },
+                {
+                  "key": "programa",
+                  "value": "{{programaAcademico}}"
+                },
+                {
+                  "key": "cursoId",
+                  "value": "{{cursoId}}"
+                }
+              ]
+            },
+            "description": "Coordinador o administrador. Devuelve un archivo XLSX con los filtros y las matriculas del reporte."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('El Excel se descarga correctamente', () => pm.response.to.have.status(200));",
+                  "pm.test('El contenido es XLSX', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reporte denegado para estudiante (403)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reportes/academicos?tipoReporte=MATRICULAS&periodo={{periodoAcademico}}&programa={{programaAcademico}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reportes",
+                "academicos"
+              ],
+              "query": [
+                {
+                  "key": "tipoReporte",
+                  "value": "MATRICULAS"
+                },
+                {
+                  "key": "periodo",
+                  "value": "{{periodoAcademico}}"
+                },
+                {
+                  "key": "programa",
+                  "value": "{{programaAcademico}}"
+                }
+              ]
+            },
+            "description": "Inicia sesion como estudiante para sustituir el token de la coleccion y ejecutar esta solicitud. El resultado esperado es HTTP 403."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('El estudiante recibe 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('periodoAcademico')) {",
+          "  const hoy = new Date();",
+          "  const semestre = hoy.getMonth() < 6 ? 1 : 2;",
+          "  pm.collectionVariables.set('periodoAcademico', `${hoy.getFullYear()}-${semestre}`);",
+          "}"
+        ]
+      }
     }
   ]
 }

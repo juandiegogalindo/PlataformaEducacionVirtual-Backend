@@ -44,3 +44,30 @@ y la poblacion. El administrador se crea como parte de `02_poblacion.sql`.
 `04_migracion_refresh_tokens.sql` es solo para bases existentes. No ejecutarlo
 después de `03_eliminacion.sql` y `01_creacion.sql`, porque el esquema nuevo ya
 incluye sus columnas e índices.
+
+## Reportes académicos
+
+No se requiere una migración para los reportes: el período se determina a partir
+de las fechas de inicio y fin del curso. `02_poblacion.sql` crea el curso de
+prueba desde la fecha actual hasta 30 días después, con dos matrículas activas
+del programa `Ingenieria de Sistemas`. Así el curso coincide con el semestre
+calendario actual (`YYYY-1` para enero-junio o `YYYY-2` para julio-diciembre).
+
+Después de iniciar sesión como Coordinador (`coord@test.com`), consulta el
+reporte o descarga un archivo usando el token devuelto por login:
+
+```http
+GET /api/reportes/academicos?tipoReporte=MATRICULAS&periodo=2026-2&programa=Ingenieria%20de%20Sistemas
+Authorization: Bearer <accessToken>
+
+GET /api/reportes/academicos/exportar/pdf?tipoReporte=MATRICULAS&periodo=2026-2&programa=Ingenieria%20de%20Sistemas
+Authorization: Bearer <accessToken>
+
+GET /api/reportes/academicos/exportar/excel?tipoReporte=MATRICULAS&periodo=2026-2&programa=Ingenieria%20de%20Sistemas
+Authorization: Bearer <accessToken>
+```
+
+Reemplaza `2026-2` por el semestre del curso sembrado. El filtro `programa` se
+puede omitir; `cursoId` también es opcional. `05_consulta_reporte_matriculas.sql`
+contiene la consulta SQL equivalente para revisar las filas directamente en
+PostgreSQL.
