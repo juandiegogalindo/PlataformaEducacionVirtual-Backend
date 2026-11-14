@@ -8,6 +8,10 @@ import com.bitcriollo.plataforma.repository.*;
 import com.bitcriollo.plataforma.security.JwtService;
 import com.bitcriollo.plataforma.security.UsuarioDetailsImpl;
 import com.bitcriollo.plataforma.service.*;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +25,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -49,6 +54,7 @@ class RevisionIntegracionTest {
     @Autowired private EvaluacionService evaluacionesService;
     @Autowired private ResultadoService resultadosService;
     @Autowired private EstudianteRepository estudiantes;
+    @Autowired private CoordinadorAcademicoRepository coordinadores;
     @Autowired private DocenteRepository docentes;
     @Autowired private UsuarioRepository usuarios;
     @Autowired private CursoRepository cursos;
@@ -220,6 +226,112 @@ class RevisionIntegracionTest {
                         .hasSize(1).allMatch(p -> p.getLeccion().getCurso().getId().equals(primero.getId())));
     }
 
+    @Test
+    void reporteFiltraMatriculasPorPeriodoProgramaYCurso() throws Exception {
+        Docente docente = docente();
+        Curso cursoCoincidente = cursoEnPeriodo(docente, "Algebra", LocalDate.of(2026, 1, 10),
+                LocalDate.of(2026, 6, 20));
+        Curso otroCurso = cursoEnPeriodo(docente, "Historia", LocalDate.of(2026, 2, 1),
+                LocalDate.of(2026, 5, 30));
+        Curso otroPeriodo = cursoEnPeriodo(docente, "Fisica", LocalDate.of(2026, 7, 1),
+                LocalDate.of(2026, 12, 20));
+
+        Estudiante objetivo = estudiante();
+        Estudiante otroPrograma = estudiante();
+        otroPrograma.setProgramaAcademico("Medicina");
+        estudiantes.saveAndFlush(otroPrograma);
+        Estudiante otroCursoEstudiante = estudiante();
+        Estudiante otroPeriodoEstudiante = estudiante();
+        matricula(objetivo, cursoCoincidente, EstadoInscripcion.ACTIVA);
+        matricula(otroPrograma, cursoCoincidente, EstadoInscripcion.ACTIVA);
+        matricula(otroCursoEstudiante, otroCurso, EstadoInscripcion.ACTIVA);
+        matricula(otroPeriodoEstudiante, otroPeriodo, EstadoInscripcion.ACTIVA);
+
+        mvc.perform(get("/api/reportes/academicos")
+                        .with(user(new UsuarioDetailsImpl(coordinador())))
+                        .param("tipoReporte", "matriculas")
+                        .param("periodo", "2026-1")
+                        .param("programa", "  INGENIERIA  ")
+                        .param("cursoId", cursoCoincidente.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("filtros.tipoReporte").value("MATRICULAS"))
+                .andExpect(jsonPath("filtros.periodo").value("2026-1"))
+                .andExpect(jsonPath("filtros.programa").value("ingenieria"))
+                .andExpect(jsonPath("totalRegistros").value(1))
+                .andExpect(jsonPath("resultados[0].estudianteId").value(objetivo.getId()))
+                .andExpect(jsonPath("resultados[0].cursoId").value(cursoCoincidente.getId()));
+    }
+
+    @Test
+    void reporteSinDatosDevuelveListaVaciaYValidaParametrosObligatorios() throws Exception {
+        var coordinador = user(new UsuarioDetailsImpl(coordinador()));
+        mvc.perform(get("/api/reportes/academicos").with(coordinador)
+                        .param("tipoReporte", "MATRICULAS").param("periodo", "2026-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("totalRegistros").value(0))
+                .andExpect(jsonPath("resultados").isEmpty());
+
+        mvc.perform(get("/api/reportes/academicos").with(coordinador).param("periodo", "2026-1"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/reportes/academicos").with(coordinador).param("tipoReporte", "MATRICULAS"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/reportes/academicos").with(coordinador)
+                        .param("tipoReporte", "OTRO").param("periodo", "2026-1"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/reportes/academicos").with(coordinador)
+                        .param("tipoReporte", "MATRICULAS").param("periodo", "2026"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void reportesRestringeConsultasYExportacionesAUsuariosAutorizados() throws Exception {
+        var estudiante = user(new UsuarioDetailsImpl(estudiante()));
+        mvc.perform(get("/api/reportes/academicos").with(estudiante)
+                        .param("tipoReporte", "MATRICULAS").param("periodo", "2026-1"))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/reportes/academicos/exportar/pdf").with(estudiante)
+                        .param("tipoReporte", "MATRICULAS").param("periodo", "2026-1"))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/reportes/academicos/exportar/excel").with(estudiante)
+                        .param("tipoReporte", "MATRICULAS").param("periodo", "2026-1"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void exportacionesPdfYExcelAbrenYContienenFiltrosYResultados() throws Exception {
+        Docente docente = docente();
+        Curso curso = cursoEnPeriodo(docente, "Algebra", LocalDate.of(2026, 1, 10), LocalDate.of(2026, 6, 20));
+        Estudiante estudiante = estudiante();
+        matricula(estudiante, curso, EstadoInscripcion.ACTIVA);
+        var coordinador = user(new UsuarioDetailsImpl(coordinador()));
+
+        var respuestaPdf = mvc.perform(get("/api/reportes/academicos/exportar/pdf").with(coordinador)
+                        .param("tipoReporte", "MATRICULAS").param("periodo", "2026-1")
+                        .param("programa", "Ingenieria").param("cursoId", curso.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/pdf"))
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString(".pdf")))
+                .andReturn().getResponse().getContentAsByteArray();
+        try (PDDocument pdf = Loader.loadPDF(respuestaPdf)) {
+            String texto = new PDFTextStripper().getText(pdf);
+            assertThat(texto).contains("2026-1", "Ingenieria", "Algebra", estudiante.getCodigoEstudiantil());
+        }
+
+        var respuestaExcel = mvc.perform(get("/api/reportes/academicos/exportar/excel").with(coordinador)
+                        .param("tipoReporte", "MATRICULAS").param("periodo", "2026-1")
+                        .param("programa", "Ingenieria").param("cursoId", curso.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString(".xlsx")))
+                .andReturn().getResponse().getContentAsByteArray();
+        try (XSSFWorkbook excel = new XSSFWorkbook(new ByteArrayInputStream(respuestaExcel))) {
+            var sheet = excel.getSheet("Matriculas");
+            assertThat(sheet).isNotNull();
+            assertThat(sheet.getRow(2).getCell(0).getStringCellValue()).contains("2026-1");
+            assertThat(sheet.getRow(8).getCell(2).getStringCellValue()).isEqualTo(estudiante.getCodigoEstudiantil());
+        }
+    }
+
     private Estudiante estudiante() {
         return tx.execute(status -> {
             String id = UUID.randomUUID().toString();
@@ -234,6 +346,20 @@ class RevisionIntegracionTest {
             estudiante.setProgramaAcademico("Ingenieria");
             estudiante.setSemestre(1);
             return estudiantes.saveAndFlush(estudiante);
+        });
+    }
+
+    private CoordinadorAcademico coordinador() {
+        return tx.execute(status -> {
+            String id = UUID.randomUUID().toString();
+            CoordinadorAcademico coordinador = new CoordinadorAcademico();
+            coordinador.setNombre("Coordinador");
+            coordinador.setApellido("Prueba");
+            coordinador.setCorreo(id + "@test.local");
+            coordinador.setContrasenaHash("hash-de-prueba");
+            coordinador.setCodigo(id);
+            coordinador.setFacultad("Ingenieria");
+            return coordinadores.saveAndFlush(coordinador);
         });
     }
 
@@ -264,6 +390,27 @@ class RevisionIntegracionTest {
         });
     }
 
+    private Curso cursoEnPeriodo(Docente docente, String nombre, LocalDate fechaInicio, LocalDate fechaFin) {
+        return tx.execute(status -> {
+            Curso curso = new Curso();
+            curso.setNombre(nombre);
+            curso.setDocente(docente);
+            curso.setCreadoPor(docente);
+            curso.setFechaInicio(fechaInicio);
+            curso.setFechaFin(fechaFin);
+            return cursos.saveAndFlush(curso);
+        });
+    }
+
+    private Inscripcion matricula(Estudiante estudiante, Curso curso, EstadoInscripcion estado) {
+        return tx.execute(status -> {
+            Inscripcion inscripcion = new Inscripcion();
+            inscripcion.setEstudiante(estudiante);
+            inscripcion.setCurso(curso);
+            inscripcion.setEstado(estado);
+            return inscripciones.saveAndFlush(inscripcion);
+        });
+    }
     private RefreshToken token(Estudiante estudiante) {
         return tx.execute(status -> {
             RefreshToken token = new RefreshToken();
