@@ -22,15 +22,15 @@ DROP TABLE IF EXISTS mensajes_foro;
 DROP TABLE IF EXISTS foros;
 DROP TABLE IF EXISTS progreso_lecciones;
 DROP TABLE IF EXISTS inscripciones;
+DROP TABLE IF EXISTS horarios_curso;
 DROP TABLE IF EXISTS recursos_bibliograficos;
 DROP TABLE IF EXISTS lecciones;
+DROP TABLE IF EXISTS fotos_perfil;
 DROP TABLE IF EXISTS cursos;
 DROP TABLE IF EXISTS coordinadores_academicos;
 DROP TABLE IF EXISTS estudiantes;
 DROP TABLE IF EXISTS docentes;
 DROP TABLE IF EXISTS administradores;
-DROP TABLE IF EXISTS fotos_perfil;ñ
-DROP TABLE IF EXISTS horarios_curso;
 DROP TABLE IF EXISTS usuarios;
 
 COMMIT;
