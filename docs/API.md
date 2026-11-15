@@ -1,6 +1,6 @@
 # API del backend — Plataforma de Educación Virtual (Bit Criollo)
 
-Referencia de los endpoints REST del backend (Spring Boot). Generada a partir del código de la rama `main`.
+Referencia de los endpoints REST de la implementación actual del backend (Spring Boot).
 
 ## Índice
 
@@ -9,16 +9,17 @@ Referencia de los endpoints REST del backend (Spring Boot). Generada a partir de
 3. [Perfil y foto de perfil](#perfil-y-foto-de-perfil)
 4. [Administración de usuarios](#administración-de-usuarios)
 5. [Cursos](#cursos)
-6. [Inscripciones](#inscripciones)
-7. [Lecciones](#lecciones)
-8. [Recursos bibliográficos](#recursos-bibliográficos)
-9. [Progreso de lecciones](#progreso-de-lecciones)
-10. [Seguimiento de estudiantes](#seguimiento-de-estudiantes)
-11. [Foro](#foro)
-12. [Evaluaciones y resultados](#evaluaciones-y-resultados)
-13. [Códigos de error](#códigos-de-error)
-14. [Enumeraciones](#enumeraciones)
-15. [Modelos (DTO)](#modelos-dto)
+6. [Reportes académicos](#reportes-académicos)
+7. [Inscripciones](#inscripciones)
+8. [Lecciones](#lecciones)
+9. [Recursos bibliográficos](#recursos-bibliográficos)
+10. [Progreso de lecciones](#progreso-de-lecciones)
+11. [Seguimiento de estudiantes](#seguimiento-de-estudiantes)
+12. [Foro](#foro)
+13. [Evaluaciones y resultados](#evaluaciones-y-resultados)
+14. [Códigos de error](#códigos-de-error)
+15. [Enumeraciones](#enumeraciones)
+16. [Modelos (DTO)](#modelos-dto)
 
 ## Convenciones
 
@@ -283,6 +284,83 @@ Cursos que dicta el docente autenticado, de cualquier estado. Filtro opcional `e
 - **Respuesta:** `200` [`List<CursoResponse>`](#cursoresponse)
 
 Todos los cursos de la plataforma, de cualquier estado. Filtro opcional `estado`.
+
+## Reportes académicos
+
+Los reportes se construyen a partir de las matrículas, del programa académico del estudiante y de las fechas de inicio y fin del curso. El backend interpreta `periodo` como un semestre calendario: `YYYY-1` corresponde del 1 de enero al 30 de junio y `YYYY-2` del 1 de julio al 31 de diciembre. Un curso se incluye si su rango de fechas se cruza con el semestre solicitado.
+
+Solo se incluyen cursos que tengan ambas fechas definidas. El filtro de programa compara el nombre sin distinguir mayúsculas y minúsculas; `cursoId` se compara por identificador. Los dos filtros pueden omitirse. Se incluyen las matrículas en todos sus estados y cada fila presenta el estado actual.
+
+### `GET /api/reportes/academicos`
+
+- **Quién:** Coordinador Académico, Administrador
+- **Parámetros obligatorios:** `tipoReporte` (`MATRICULAS`), `periodo` (`YYYY-1` o `YYYY-2`)
+- **Parámetros opcionales:** `programa` (nombre del programa), `cursoId` (identificador numérico positivo)
+- **Respuesta:** `200` con filtros, número de registros y resultados. Cuando no hay coincidencias devuelve `200`, `totalRegistros: 0` y `resultados: []`.
+- **Validación:** parámetros obligatorios ausentes, período inválido, tipo no soportado o `cursoId` no positivo responden `400`.
+
+Ejemplo:
+
+```http
+GET /api/reportes/academicos?tipoReporte=MATRICULAS&periodo=2026-1&programa=Ingenieria%20de%20Sistemas&cursoId=12
+Authorization: Bearer <accessToken>
+```
+
+Respuesta abreviada:
+
+```json
+{
+  "filtros": {
+    "tipoReporte": "MATRICULAS",
+    "periodo": "2026-1",
+    "periodoDesde": "2026-01-01",
+    "periodoHasta": "2026-06-30",
+    "programa": "ingenieria de sistemas",
+    "cursoId": 12
+  },
+  "totalRegistros": 1,
+  "resultados": [
+    {
+      "inscripcionId": 31,
+      "estudianteId": 8,
+      "codigoEstudiantil": "E008",
+      "nombreCompleto": "Ana Pérez",
+      "correo": "ana@example.edu",
+      "programa": "Ingeniería de Sistemas",
+      "semestre": 3,
+      "cursoId": 12,
+      "curso": "Cálculo Diferencial",
+      "estado": "ACTIVA",
+      "fechaInscripcion": "2026-02-02T10:15:00",
+      "calificacionFinal": null
+    }
+  ]
+}
+```
+
+### `GET /api/reportes/academicos/exportar/pdf`
+
+### `GET /api/reportes/academicos/exportar/excel`
+
+- **Quién:** Coordinador Académico, Administrador
+- **Parámetros:** los mismos de `GET /api/reportes/academicos`; `tipoReporte` y `periodo` son obligatorios.
+- **Respuesta:** `200` con `Content-Disposition: attachment` y un archivo PDF (`application/pdf`) o Excel OOXML (`application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`).
+- Los archivos presentan los filtros aplicados y las filas del reporte. Si no hay coincidencias, contienen los filtros y una indicación/listado vacío.
+- Una persona con rol Estudiante recibe `403` al consultar o exportar.
+
+Ejemplo de descarga PDF:
+
+```http
+GET /api/reportes/academicos/exportar/pdf?tipoReporte=MATRICULAS&periodo=2026-1&programa=Ingenieria%20de%20Sistemas
+Authorization: Bearer <accessToken>
+```
+
+Ejemplo de descarga Excel:
+
+```http
+GET /api/reportes/academicos/exportar/excel?tipoReporte=MATRICULAS&periodo=2026-1&cursoId=12
+Authorization: Bearer <accessToken>
+```
 
 ## Inscripciones
 
