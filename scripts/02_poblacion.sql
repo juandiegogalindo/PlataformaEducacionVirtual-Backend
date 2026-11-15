@@ -61,7 +61,7 @@ u_est2 AS (
 ),
 curso_ins AS (
     INSERT INTO cursos (nombre, descripcion, estado, docente_id, creado_por_usuario_id, fecha_inicio, fecha_fin, cupo_maximo, created_at, updated_at)
-    SELECT 'Algebra I', 'Curso de prueba', 'ACTIVO', docente_ins.id, docente_ins.id, DATE '2026-10-01', DATE '2026-12-01', 30, now(), now()
+    SELECT 'Algebra I', 'Curso de prueba', 'ACTIVO', docente_ins.id, docente_ins.id, CURRENT_DATE, CURRENT_DATE + 30, 30, now(), now()
     FROM docente_ins
     RETURNING id
 ),
