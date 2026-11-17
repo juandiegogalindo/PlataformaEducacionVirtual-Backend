@@ -19,6 +19,7 @@ import org.springframework.security.web.csrf.CsrfToken;
 @RequestMapping("/api/auth")
 public class AuthController {
 
+    private static final String REFRESH_TOKEN = "refresh_token";
     private final AuthService authService;
 
     @Value("${app.auth.refresh-cookie.enabled:false}")
@@ -59,7 +60,7 @@ public class AuthController {
         if ((effective.getRefreshToken() == null || effective.getRefreshToken().isBlank())
                 && refreshCookieEnabled && httpRequest.getCookies() != null) {
             for (var cookie : httpRequest.getCookies()) {
-                if ("refresh_token".equals(cookie.getName())) {
+                if (REFRESH_TOKEN.equals(cookie.getName())) {
                     effective.setRefreshToken(cookie.getValue());
                     break;
                 }
@@ -77,7 +78,7 @@ public class AuthController {
         if ((effective.getRefreshToken() == null || effective.getRefreshToken().isBlank())
                 && refreshCookieEnabled && httpRequest.getCookies() != null) {
             for (var cookie : httpRequest.getCookies()) {
-                if ("refresh_token".equals(cookie.getName())) {
+                if (REFRESH_TOKEN.equals(cookie.getName())) {
                     effective.setRefreshToken(cookie.getValue());
                     break;
                 }
@@ -85,7 +86,7 @@ public class AuthController {
         }
         authService.logout(effective);
         if (refreshCookieEnabled) {
-            response.addHeader("Set-Cookie", ResponseCookie.from("refresh_token", "")
+            response.addHeader("Set-Cookie", ResponseCookie.from(REFRESH_TOKEN, "")
                     .httpOnly(true).secure(refreshCookieSecure).sameSite("Lax")
                     .path("/api/auth").maxAge(0).build().toString());
         }
@@ -94,7 +95,7 @@ public class AuthController {
 
     private void agregarCookie(HttpServletResponse response, String token) {
         if (refreshCookieEnabled) {
-            response.addHeader("Set-Cookie", ResponseCookie.from("refresh_token", token)
+            response.addHeader("Set-Cookie", ResponseCookie.from(REFRESH_TOKEN, token)
                     .httpOnly(true).secure(refreshCookieSecure).sameSite("Lax")
                     .path("/api/auth").maxAge(java.time.Duration.ofDays(7)).build().toString());
         }

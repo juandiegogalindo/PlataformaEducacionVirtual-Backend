@@ -96,7 +96,7 @@ public class SecurityConfig {
         http
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> {
-                    csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse());
+                    csrf.csrfTokenRepository(new CookieCsrfTokenRepository());
                     if (!refreshCookieEnabled) {
                         // El modo JSON no autentica con cookies; se conserva el contrato existente
                         // sin exponer los endpoints a CSRF basado en cookies.

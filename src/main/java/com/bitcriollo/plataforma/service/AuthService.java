@@ -109,42 +109,71 @@ public class AuthService {
 
         return generarRespuestaAuth(usuario);
     }
-
-    @Transactional
+    
+    @Transactional(noRollbackFor = CredencialesInvalidasException.class)
     public AuthResponse refrescarToken(RefreshTokenRequest request) {
         String rawToken = validarRefreshRequest(request);
-        RefreshToken refreshToken = buscarRefreshToken(rawToken)
-                .orElseThrow(() -> new CredencialesInvalidasException("Refresh token invalido"));
 
-        if (refreshToken.isRevocado() || refreshToken.getFechaExpiracion().isBefore(LocalDateTime.now())) {
-            if (refreshToken.isRevocado()) {
-                java.util.List<RefreshToken> sessionTokens = refreshToken.getSessionId() == null
-                        ? java.util.List.of(refreshToken)
-                        : refreshTokenRepository.findBySessionId(refreshToken.getSessionId());
-                if (sessionTokens != null) {
-                    sessionTokens.forEach(token -> {
-                        token.setRevocado(true);
-                        token.setRevokedAt(LocalDateTime.now());
-                    });
-                    refreshTokenRepository.saveAll(sessionTokens);
-                }
+        RefreshToken refreshToken = buscarRefreshToken(rawToken)
+                .orElseThrow(() ->
+                        new CredencialesInvalidasException("Refresh token invalido"));
+
+        LocalDateTime ahora = LocalDateTime.now();
+
+        // Detectar reutilización de un refresh token previamente revocado.
+        if (refreshToken.isRevocado()) {
+
+            if (refreshToken.getSessionId() != null) {
+
+                // Obtener y bloquear todos los tokens de la misma sesión.
+                java.util.List<RefreshToken> sessionTokens =
+                        refreshTokenRepository.findBySessionIdForUpdate(
+                                refreshToken.getSessionId());
+
+                sessionTokens.forEach(token -> {
+                    token.setRevocado(true);
+                    token.setRevokedAt(ahora);
+                });
+
+                // Forzar la escritura antes de lanzar la excepción.
+                refreshTokenRepository.saveAllAndFlush(sessionTokens);
+
+            } else {
+                refreshToken.setRevocado(true);
+                refreshToken.setRevokedAt(ahora);
+                refreshTokenRepository.saveAndFlush(refreshToken);
             }
-            throw new CredencialesInvalidasException("Refresh token expirado o revocado");
+
+            throw new CredencialesInvalidasException(
+                    "Se detecto reutilizacion de un refresh token. Sesion revocada.");
+        }
+
+        // Verificar expiración.
+        if (refreshToken.getFechaExpiracion().isBefore(ahora)) {
+            throw new CredencialesInvalidasException(
+                    "Refresh token expirado");
         }
 
         Usuario usuario = refreshToken.getUsuario();
-        if (!usuario.isActivo() || (usuario.getBloqueadoHasta() != null
-                && usuario.getBloqueadoHasta().isAfter(LocalDateTime.now()))) {
-            throw new CredencialesInvalidasException("No se puede renovar la sesion");
+
+        if (!usuario.isActivo()
+                || (usuario.getBloqueadoHasta() != null
+                && usuario.getBloqueadoHasta().isAfter(ahora))) {
+
+            throw new CredencialesInvalidasException(
+                    "No se puede renovar la sesion");
         }
 
+        // Revocar el token utilizado.
         refreshToken.setRevocado(true);
-        refreshToken.setRevokedAt(LocalDateTime.now());
-        refreshTokenRepository.save(refreshToken);
+        refreshToken.setRevokedAt(ahora);
 
-        // El refresh token se revoca antes de emitir uno nuevo para evitar su reutilización.
+        refreshTokenRepository.saveAndFlush(refreshToken);
+
+        // Generar el nuevo token conservando la familia de sesión.
         return generarRespuestaAuth(usuario, refreshToken.getSessionId());
     }
+
 
     @Transactional
     public void logout(RefreshTokenRequest request) {
