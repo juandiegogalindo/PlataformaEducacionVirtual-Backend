@@ -52,7 +52,7 @@ public class ResultadoService {
         }
 
         Evaluacion evaluacion = (Evaluacion) Hibernate.unproxy(evaluacionRepository.findById(evaluacionId)
-                .orElseThrow(() -> new IllegalArgumentException("No existe una evaluacion con id " + evaluacionId)));
+                .orElseThrow(() -> evaluacionNoEncontrada(evaluacionId)));
 
         // Solo los estudiantes con inscripción activa pueden registrar resultados.
         if (!cursoAccesoService.estaInscritoActivo(evaluacion.getCurso(), estudiante)) {
@@ -61,7 +61,7 @@ public class ResultadoService {
 
         // Las evaluaciones en borrador no se muestran al estudiante para evitar revelar contenido no publicado.
         if (evaluacion.getEstado() == EstadoEvaluacion.BORRADOR) {
-            throw new IllegalArgumentException("No existe una evaluacion con id " + evaluacionId);
+            throw evaluacionNoEncontrada(evaluacionId);
         }
         if (evaluacion.getEstado() == EstadoEvaluacion.CERRADA) {
             throw new IllegalStateException("La evaluacion esta cerrada");
@@ -72,25 +72,9 @@ public class ResultadoService {
         LocalDateTime ahora = LocalDateTime.now();
 
         if (evaluacion instanceof Examen examen) {
-            // El estudiante debe esperar hasta la fecha de aplicación y respetar el límite de intentos.
-            if (ahora.isBefore(examen.getFechaAplicacion())) {
-                throw new IllegalStateException("El examen aun no esta disponible");
-            }
-            if (previos.size() >= examen.getNumeroIntentosPermitidos()) {
-                throw new IllegalStateException("Ya usaste todos los intentos permitidos para este examen");
-            }
+            validarIntentoExamen(examen, previos.size(), ahora);
         } else if (evaluacion instanceof Tarea tarea) {
-            // Una tarea solo admite una entrega por estudiante.
-            if (!previos.isEmpty()) {
-                throw new IllegalStateException("Ya registraste la entrega de esta tarea");
-            }
-            if (!StringUtils.hasText(request.getContenido())) {
-                throw new IllegalArgumentException("La entrega de una tarea requiere contenido");
-            }
-            // Las entregas posteriores a la fecha límite solo se permiten cuando la tarea las admite.
-            if (ahora.isAfter(tarea.getFechaLimite()) && !tarea.isPermiteEntregaTardia()) {
-                throw new IllegalStateException("La fecha limite de entrega ya paso");
-            }
+            validarEntregaTarea(tarea, request, previos.size(), ahora);
         }
 
         Resultado resultado = new Resultado();
@@ -101,6 +85,34 @@ public class ResultadoService {
 
         resultadoRepository.save(resultado);
         return mapearAResponse(resultado);
+    }
+
+    private static IllegalArgumentException evaluacionNoEncontrada(Long evaluacionId) {
+        return new IllegalArgumentException("No existe una evaluacion con id " + evaluacionId);
+    }
+
+    // El estudiante debe esperar hasta la fecha de aplicación y respetar el límite de intentos.
+    private static void validarIntentoExamen(Examen examen, int intentosPrevios, LocalDateTime ahora) {
+        if (ahora.isBefore(examen.getFechaAplicacion())) {
+            throw new IllegalStateException("El examen aun no esta disponible");
+        }
+        if (intentosPrevios >= examen.getNumeroIntentosPermitidos()) {
+            throw new IllegalStateException("Ya usaste todos los intentos permitidos para este examen");
+        }
+    }
+
+    // Una tarea solo admite una entrega por estudiante; las entregas tardías solo si la tarea las permite.
+    private static void validarEntregaTarea(Tarea tarea, RegistrarResultadoRequest request,
+                                            int entregasPrevias, LocalDateTime ahora) {
+        if (entregasPrevias > 0) {
+            throw new IllegalStateException("Ya registraste la entrega de esta tarea");
+        }
+        if (!StringUtils.hasText(request.getContenido())) {
+            throw new IllegalArgumentException("La entrega de una tarea requiere contenido");
+        }
+        if (ahora.isAfter(tarea.getFechaLimite()) && !tarea.isPermiteEntregaTardia()) {
+            throw new IllegalStateException("La fecha limite de entrega ya paso");
+        }
     }
 
     @Transactional

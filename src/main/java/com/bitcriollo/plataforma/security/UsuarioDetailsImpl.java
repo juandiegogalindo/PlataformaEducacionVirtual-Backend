@@ -12,7 +12,7 @@ import java.util.List;
 
 public class UsuarioDetailsImpl implements UserDetails {
 
-    private final Usuario usuario;
+    private final transient Usuario usuario;
 
     public UsuarioDetailsImpl(Usuario usuario) {
         this.usuario = (Usuario) Hibernate.unproxy(usuario);
