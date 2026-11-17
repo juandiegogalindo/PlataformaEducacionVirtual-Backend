@@ -21,4 +21,9 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
     List<RefreshToken> findByUsuarioIdAndRevocadoFalse(Long usuarioId);
 
     List<RefreshToken> findBySessionId(String sessionId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select r from RefreshToken r where r.sessionId = :sessionId")
+    List<RefreshToken> findBySessionIdForUpdate(
+            @Param("sessionId") String sessionId);
 }

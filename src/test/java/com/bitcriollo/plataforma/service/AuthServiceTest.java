@@ -90,12 +90,18 @@ class AuthServiceTest {
     @Test
     void renuevaUnaSesionValidaYRevocaLaAnterior() {
         when(jwt.generarToken(any())).thenReturn("nuevo-jwt");
+
         var respuesta = service.refrescarToken(request);
+
         assertThat(token.isRevocado()).isTrue();
         assertThat(respuesta.getAccessToken()).isEqualTo("nuevo-jwt");
         assertThat(respuesta.getRol()).isEqualTo("Estudiante");
-        assertThat(respuesta.getRefreshToken()).isNotBlank().isNotEqualTo(request.getRefreshToken());
-        verify(tokens, times(2)).save(any(RefreshToken.class));
+        assertThat(respuesta.getRefreshToken())
+                .isNotBlank()
+                .isNotEqualTo(request.getRefreshToken());
+
+        verify(tokens, times(1)).saveAndFlush(token);
+        verify(tokens, times(1)).save(any(RefreshToken.class));
     }
 
     @Test
